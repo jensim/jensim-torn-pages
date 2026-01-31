@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Menu.css';
 
 interface MenuProps {
@@ -7,12 +8,13 @@ interface MenuProps {
 
 const Menu: React.FC<MenuProps> = ({ items = [] }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const defaultItems = items.length > 0 ? items : [
-    { label: 'Home', onClick: () => console.log('Home clicked') },
-    { label: 'About', onClick: () => console.log('About clicked') },
-    { label: 'Settings', onClick: () => console.log('Settings clicked') },
-    { label: 'Help', onClick: () => console.log('Help clicked') },
+    { label: 'Home', onClick: () => navigate('/') },
+    { label: 'About', onClick: () => navigate('/about') },
+    { label: 'Settings', onClick: () => navigate('/settings') },
+    { label: 'Help', onClick: () => navigate('/help') },
   ];
 
   const toggleMenu = () => {
