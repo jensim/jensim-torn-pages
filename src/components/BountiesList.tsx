@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { fetchBounties, Bounty } from '../api';
+import { fetchStats, FFScouterStats } from '../api/ffScouter';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 
 const BountiesList: React.FC = () => {
   const { password: apiKey } = usePassword('torn-api-key');
+  const { password: ffApiKey } = usePassword('ff-api-key');
   const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [fairFightData, setFairFightData] = useState<Map<number, FFScouterStats>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [loadingFairFight, setLoadingFairFight] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
@@ -36,6 +40,33 @@ const BountiesList: React.FC = () => {
 
     loadBounties();
   }, [apiKey, offset]);
+
+  useEffect(() => {
+    const loadFairFightData = async () => {
+      if (!ffApiKey || bounties.length === 0) {
+        return;
+      }
+
+      setLoadingFairFight(true);
+
+      const targetIds = bounties.map(bounty => bounty.target_id);
+      const result = await fetchStats({ apiKey: ffApiKey, targetIds });
+
+      if (result.error) {
+        toast.error(`Failed to load fair fight data: ${result.error}`);
+      } else if (result.data) {
+        const ffMap = new Map<number, FFScouterStats>();
+        result.data.forEach(stats => {
+          ffMap.set(stats.player_id, stats);
+        });
+        setFairFightData(ffMap);
+      }
+
+      setLoadingFairFight(false);
+    };
+
+    loadFairFightData();
+  }, [ffApiKey, bounties]);
 
   const handlePrevious = () => {
     if (offset >= limit) {
@@ -87,34 +118,49 @@ const BountiesList: React.FC = () => {
                 <th style={{ textAlign: 'left', padding: '8px' }}>Level</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Lister</th>
                 <th style={{ textAlign: 'right', padding: '8px' }}>Reward</th>
+                <th style={{ textAlign: 'center', padding: '8px' }}>Fair Fight</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Reason</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Quantity</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Valid Until</th>
               </tr>
             </thead>
             <tbody>
-              {bounties.map((bounty, index) => (
-                <tr 
-                  key={`${bounty.target_id}-${index}`}
-                  style={{ borderBottom: '1px solid #eee' }}
-                >
-                  <td style={{ padding: '8px' }}>
-                    {bounty.target_name} ({bounty.target_id})
-                  </td>
-                  <td style={{ padding: '8px' }}>{bounty.target_level}</td>
-                  <td style={{ padding: '8px' }}>
-                    {bounty.is_anonymous ? 'Anonymous' : `${bounty.lister_name} (${bounty.lister_id})`}
-                  </td>
-                  <td style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>
-                    {formatCurrency(bounty.reward)}
-                  </td>
-                  <td style={{ padding: '8px' }}>{bounty.reason}</td>
-                  <td style={{ textAlign: 'center', padding: '8px' }}>{bounty.quantity}</td>
-                  <td style={{ padding: '8px', fontSize: '0.9em' }}>
-                    {formatDate(bounty.valid_until)}
-                  </td>
-                </tr>
-              ))}
+              {bounties.map((bounty, index) => {
+                const ffStats = fairFightData.get(bounty.target_id);
+                return (
+                  <tr 
+                    key={`${bounty.target_id}-${index}`}
+                    style={{ borderBottom: '1px solid #eee' }}
+                  >
+                    <td style={{ padding: '8px' }}>
+                      {bounty.target_name} ({bounty.target_id})
+                    </td>
+                    <td style={{ padding: '8px' }}>{bounty.target_level}</td>
+                    <td style={{ padding: '8px' }}>
+                      {bounty.is_anonymous ? 'Anonymous' : `${bounty.lister_name} (${bounty.lister_id})`}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>
+                      {formatCurrency(bounty.reward)}
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '8px' }}>
+                      {loadingFairFight ? (
+                        <span style={{ fontSize: '0.9em', color: '#666' }}>Loading...</span>
+                      ) : ffStats ? (
+                        <span style={{ fontWeight: 'bold' }}>{ffStats.fair_fight.toFixed(2)}</span>
+                      ) : ffApiKey ? (
+                        <span style={{ fontSize: '0.9em', color: '#999' }}>N/A</span>
+                      ) : (
+                        <span style={{ fontSize: '0.9em', color: '#999' }}>-</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px' }}>{bounty.reason}</td>
+                    <td style={{ textAlign: 'center', padding: '8px' }}>{bounty.quantity}</td>
+                    <td style={{ padding: '8px', fontSize: '0.9em' }}>
+                      {formatDate(bounty.valid_until)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           
