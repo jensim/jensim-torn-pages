@@ -6,6 +6,9 @@ import { usePassword } from '../hooks/usePassword';
 const Settings: React.FC = () => {
   // Get the FF-scouter API key from localStorage
   const { password: apiKey, setPassword: setApiKey, clearPassword: clearApiKey } = usePassword('ff-api-key');
+  
+  // Get the Torn API key from localStorage
+  const { password: tornApiKey, setPassword: setTornApiKey, clearPassword: clearTornApiKey } = usePassword('torn-api-key');
 
   return (
     <div className="App-header">
@@ -27,6 +30,15 @@ const Settings: React.FC = () => {
       <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f0f0f0', borderRadius: '8px' }}>
         <FfApiKeyTestButton apiKey={apiKey} />
       </div>
+
+      <PasswordInput 
+          id="torn-api-key"
+          value={tornApiKey}
+          onChange={setTornApiKey}
+          onClear={clearTornApiKey}
+          label="Torn API Key"
+          placeholder="Enter your Torn API key"
+        />
     </div>
   );
 };
