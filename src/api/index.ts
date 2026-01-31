@@ -3,3 +3,4 @@
  */
 
 export * from './tornBounties';
+export * from './ffScouter';
