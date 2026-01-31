@@ -1,0 +1,59 @@
+import React, { useState } from 'react';
+import './Menu.css';
+
+interface MenuProps {
+  items?: Array<{ label: string; onClick: () => void }>;
+}
+
+const Menu: React.FC<MenuProps> = ({ items = [] }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const defaultItems = items.length > 0 ? items : [
+    { label: 'Home', onClick: () => console.log('Home clicked') },
+    { label: 'About', onClick: () => console.log('About clicked') },
+    { label: 'Settings', onClick: () => console.log('Settings clicked') },
+    { label: 'Help', onClick: () => console.log('Help clicked') },
+  ];
+
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const handleItemClick = (item: { label: string; onClick: () => void }) => {
+    item.onClick();
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="menu-container">
+      <button 
+        className={`menu-icon ${isOpen ? 'open' : ''}`} 
+        onClick={toggleMenu}
+        aria-label="Toggle menu"
+      >
+        <span className="menu-line"></span>
+        <span className="menu-line"></span>
+        <span className="menu-line"></span>
+      </button>
+      
+      {isOpen && (
+        <>
+          <div className="menu-overlay" onClick={toggleMenu}></div>
+          <nav className="menu-dropdown">
+            <ul className="menu-list">
+              {defaultItems.map((item, index) => (
+                <li key={index} className="menu-item">
+                  <button onClick={() => handleItemClick(item)}>
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Menu;
