@@ -5,6 +5,7 @@ import { fetchUserBasic, UserBasicResponse } from '../api/tornUserBasic';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
+import { useNavigate } from 'react-router-dom';
 
 const BountiesList: React.FC = () => {
   const { password: apiKey } = usePassword('torn-api-key');
@@ -41,6 +42,8 @@ const BountiesList: React.FC = () => {
       maxTimeRemaining: null,
     };
   };
+  
+  const navigate = useNavigate();
 
   const [filters, setFilters] = useState<FilterCriteria>(getInitialFilters);
 
@@ -240,6 +243,20 @@ const BountiesList: React.FC = () => {
       <div style={{ padding: '20px' }}>
         <h2>Torn Bounties</h2>
         <p>Please set your Torn API key in the Settings page to view bounties.</p>
+        <button
+          onClick={() => navigate('/settings')}
+          style={{
+            padding: '8px 16px',
+            cursor: 'pointer',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            opacity: 1,
+          }}
+        >
+          Go to Settings
+        </button>
       </div>
     );
   }
@@ -286,10 +303,8 @@ const BountiesList: React.FC = () => {
                 <th style={{ textAlign: 'left', padding: '8px' }}>Level</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Status</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Time Remaining</th>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Lister</th>
                 <th style={{ textAlign: 'right', padding: '8px' }}>Reward</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Fair Fight</th>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Reason</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Quantity</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Valid Until</th>
               </tr>
@@ -341,9 +356,6 @@ const BountiesList: React.FC = () => {
                         <span style={{ color: '#999' }}>-</span>
                       )}
                     </td>
-                    <td style={{ padding: '8px' }}>
-                      {bounty.is_anonymous ? 'Anonymous' : `${bounty.lister_name} (${bounty.lister_id})`}
-                    </td>
                     <td style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>
                       {formatCurrency(bounty.reward)}
                     </td>
@@ -358,7 +370,6 @@ const BountiesList: React.FC = () => {
                         <span style={{ fontSize: '0.9em', color: '#999' }}>-</span>
                       )}
                     </td>
-                    <td style={{ padding: '8px' }}>{bounty.reason}</td>
                     <td style={{ textAlign: 'center', padding: '8px' }}>{bounty.quantity}</td>
                     <td style={{ padding: '8px', fontSize: '0.9em' }}>
                       {formatDate(bounty.valid_until)}

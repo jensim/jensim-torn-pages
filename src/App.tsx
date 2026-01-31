@@ -4,7 +4,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import Menu from './Menu';
-import Home from './pages/Home';
 import About from './pages/About';
 import Settings from './pages/Settings';
 import Help from './pages/Help';
