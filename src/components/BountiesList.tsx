@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { fetchBounties, Bounty } from '../api';
 import { fetchStats, FFScouterStats } from '../api/ffScouter';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
+import BountiesFilter, { FilterCriteria } from './BountiesFilter';
 
 const BountiesList: React.FC = () => {
   const { password: apiKey } = usePassword('torn-api-key');
@@ -15,6 +16,14 @@ const BountiesList: React.FC = () => {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
   const limit = 100;
+  const [filters, setFilters] = useState<FilterCriteria>({
+    minLevel: null,
+    maxLevel: null,
+    minReward: null,
+    maxReward: null,
+    minFairFight: null,
+    maxFairFight: null,
+  });
 
   useEffect(() => {
     const loadBounties = async () => {
@@ -78,6 +87,40 @@ const BountiesList: React.FC = () => {
     setOffset(offset + limit);
   };
 
+  const filteredBounties = useMemo(() => {
+    return bounties.filter(bounty => {
+      const ffStats = fairFightData.get(bounty.target_id);
+      
+      // Level filter
+      if (filters.minLevel !== null && bounty.target_level < filters.minLevel) {
+        return false;
+      }
+      if (filters.maxLevel !== null && bounty.target_level > filters.maxLevel) {
+        return false;
+      }
+      
+      // Reward filter
+      if (filters.minReward !== null && bounty.reward < filters.minReward) {
+        return false;
+      }
+      if (filters.maxReward !== null && bounty.reward > filters.maxReward) {
+        return false;
+      }
+      
+      // Fair Fight filter (only if data is available)
+      if (ffStats) {
+        if (filters.minFairFight !== null && ffStats.fair_fight < filters.minFairFight) {
+          return false;
+        }
+        if (filters.maxFairFight !== null && ffStats.fair_fight > filters.maxFairFight) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [bounties, fairFightData, filters]);
+
   const formatCurrency = (amount: number): string => {
     return `$${amount.toLocaleString()}`;
   };
@@ -107,8 +150,10 @@ const BountiesList: React.FC = () => {
       
       {!loading && bounties.length > 0 && (
         <>
+          <BountiesFilter filters={filters} onFilterChange={setFilters} />
+          
           <div style={{ marginBottom: '20px' }}>
-            <strong>{bounties.length}</strong> bounties loaded (showing {offset + 1} - {offset + bounties.length})
+            <strong>{filteredBounties.length}</strong> of <strong>{bounties.length}</strong> bounties shown (page: {offset + 1} - {offset + bounties.length})
           </div>
           
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -125,7 +170,7 @@ const BountiesList: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {bounties.map((bounty, index) => {
+              {filteredBounties.map((bounty, index) => {
                 const ffStats = fairFightData.get(bounty.target_id);
                 return (
                   <tr 
