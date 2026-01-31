@@ -178,6 +178,80 @@ describe('tornUserBasic API', () => {
     });
   });
 
+  describe('Rate Limiting', () => {
+    it('should rate limit calls to max 10 per second', async () => {
+      const mockResponse: UserBasicResponse = {
+        profile: {
+          id: 123,
+          name: 'User1',
+          level: 10,
+          gender: 'Male',
+          status: {
+            description: 'Okay',
+            details: '',
+            state: 'Okay',
+            color: 'green',
+            until: 0,
+          },
+        },
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const startTime = Date.now();
+      
+      // Make 15 calls - should take at least 500ms due to rate limiting
+      // (10 calls in first second, 5 more calls requiring at least 500ms more)
+      const promises = Array.from({ length: 15 }, (_, i) =>
+        fetchUserBasic({ apiKey: 'test-api-key', targetId: i })
+      );
+
+      await Promise.all(promises);
+
+      const elapsed = Date.now() - startTime;
+
+      // With 15 calls at 10 calls/sec, we expect at least 500ms
+      // (first 10 are immediate, next 5 need to wait)
+      expect(elapsed).toBeGreaterThanOrEqual(400); // Some margin for test execution
+    });
+
+    it('should respect rate limit in fetchMultipleUsersBasic', async () => {
+      const mockResponse: UserBasicResponse = {
+        profile: {
+          id: 123,
+          name: 'User1',
+          level: 10,
+          gender: 'Male',
+          status: {
+            description: 'Okay',
+            details: '',
+            state: 'Okay',
+            color: 'green',
+            until: 0,
+          },
+        },
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const startTime = Date.now();
+      const targetIds = Array.from({ length: 12 }, (_, i) => i);
+
+      await fetchMultipleUsersBasic('test-api-key', targetIds);
+
+      const elapsed = Date.now() - startTime;
+
+      // With 12 calls at 10 calls/sec, we expect at least 200ms
+      expect(elapsed).toBeGreaterThanOrEqual(100); // Some margin for test execution
+    });
+  });
+
   describe('fetchMultipleUsersBasic', () => {
     it('should fetch multiple users successfully', async () => {
       const mockResponse1: UserBasicResponse = {

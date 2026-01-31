@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchBounties, Bounty } from '../api';
 import { fetchStats, FFScouterStats } from '../api/ffScouter';
-import { fetchMultipleUsersBasic, UserBasicResponse } from '../api/tornUserBasic';
+import { fetchUserBasic, UserBasicResponse } from '../api/tornUserBasic';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
@@ -105,34 +105,40 @@ const BountiesList: React.FC = () => {
     loadFairFightData();
   }, [ffApiKey, bounties]);
 
-  useEffect(() => {
-    const loadUserStatusData = async () => {
-      if (!apiKey || bounties.length === 0) {
-        return;
-      }
+  const loadUserStatusForFilteredTargets = async () => {
+    if (!apiKey || filteredBounties.length === 0) {
+      return;
+    }
 
-      setLoadingUserStatus(true);
+    setLoadingUserStatus(true);
+    // Clear previous data
+    setUserStatusData(new Map());
 
-      const targetIds = bounties.map(bounty => bounty.target_id);
-      const result = await fetchMultipleUsersBasic(apiKey, targetIds);
-
+    const targetIds = filteredBounties.map(bounty => bounty.target_id);
+    
+    // Fetch user data progressively
+    const errors: string[] = [];
+    for (const targetId of targetIds) {
+      const result = await fetchUserBasic({ apiKey, targetId });
+      
       if (result.error) {
-        toast.error(`Failed to load user status data: ${result.error}`);
-      }
-
-      if (result.data && result.data.length > 0) {
-        const statusMap = new Map<number, UserBasicResponse>();
-        result.data.forEach(userData => {
-          statusMap.set(userData.profile.id, userData);
+        errors.push(`User ${targetId}: ${result.error}`);
+      } else if (result.data) {
+        // Update state immediately as each user's data arrives
+        setUserStatusData(prevMap => {
+          const newMap = new Map(prevMap);
+          newMap.set(result.data!.profile.id, result.data!);
+          return newMap;
         });
-        setUserStatusData(statusMap);
       }
+    }
 
-      setLoadingUserStatus(false);
-    };
+    if (errors.length > 0) {
+      toast.error(`Failed to load some user status data: ${errors[0]}${errors.length > 1 ? ` (and ${errors.length - 1} more)` : ''}`);
+    }
 
-    loadUserStatusData();
-  }, [apiKey, bounties]);
+    setLoadingUserStatus(false);
+  };
 
   const handlePrevious = () => {
     if (offset >= limit) {
@@ -252,8 +258,25 @@ const BountiesList: React.FC = () => {
         <>
           <BountiesFilter filters={filters} onFilterChange={setFilters} />
           
-          <div style={{ marginBottom: '20px' }}>
-            <strong>{filteredBounties.length}</strong> of <strong>{bounties.length}</strong> bounties shown (page: {offset + 1} - {offset + bounties.length})
+          <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div>
+              <strong>{filteredBounties.length}</strong> of <strong>{bounties.length}</strong> bounties shown (page: {offset + 1} - {offset + bounties.length})
+            </div>
+            <button
+              onClick={loadUserStatusForFilteredTargets}
+              disabled={loadingUserStatus || filteredBounties.length === 0}
+              style={{
+                padding: '8px 16px',
+                cursor: (loadingUserStatus || filteredBounties.length === 0) ? 'not-allowed' : 'pointer',
+                opacity: (loadingUserStatus || filteredBounties.length === 0) ? 0.5 : 1,
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+              }}
+            >
+              {loadingUserStatus ? 'Loading Status...' : 'Load User Status'}
+            </button>
           </div>
           
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -281,7 +304,14 @@ const BountiesList: React.FC = () => {
                     style={{ borderBottom: '1px solid #eee' }}
                   >
                     <td style={{ padding: '8px' }}>
-                      {bounty.target_name} ({bounty.target_id})
+                      <a 
+                        href={`https://www.torn.com/profiles.php?XID=${bounty.target_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'inherit', textDecoration: 'underline' }}
+                      >
+                        {bounty.target_name} ({bounty.target_id})
+                      </a>
                     </td>
                     <td style={{ padding: '8px' }}>{bounty.target_level}</td>
                     <td style={{ textAlign: 'center', padding: '8px' }}>

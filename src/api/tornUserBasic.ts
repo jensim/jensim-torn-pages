@@ -44,6 +44,55 @@ export interface FetchUserBasicResult {
 const BASE_URL = 'https://api.torn.com/v2/user';
 
 /**
+ * Rate limiter for Torn API calls
+ * Implements a sliding window rate limiter with max 10 calls per second
+ */
+class RateLimiter {
+  private callTimestamps: number[] = [];
+  private readonly maxCallsPerSecond: number;
+  private readonly windowMs: number;
+
+  constructor(maxCallsPerSecond: number = 10) {
+    this.maxCallsPerSecond = maxCallsPerSecond;
+    this.windowMs = 1000; // 1 second window
+  }
+
+  /**
+   * Waits if necessary to respect the rate limit before proceeding
+   */
+  async waitForSlot(): Promise<void> {
+    const now = Date.now();
+    
+    // Remove timestamps older than 1 second
+    this.callTimestamps = this.callTimestamps.filter(
+      timestamp => now - timestamp < this.windowMs
+    );
+
+    // If we've made max calls in the last second, wait
+    if (this.callTimestamps.length >= this.maxCallsPerSecond) {
+      const oldestCall = this.callTimestamps[0];
+      const waitTime = this.windowMs - (now - oldestCall) + 1; // +1ms buffer
+      
+      if (waitTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+      
+      // Clean up old timestamps again after waiting
+      const afterWait = Date.now();
+      this.callTimestamps = this.callTimestamps.filter(
+        timestamp => afterWait - timestamp < this.windowMs
+      );
+    }
+
+    // Record this call
+    this.callTimestamps.push(Date.now());
+  }
+}
+
+// Global rate limiter instance
+const rateLimiter = new RateLimiter(10);
+
+/**
  * Fetches basic user information from the Torn API v2
  * @param params - Parameters including API key and target user ID
  * @returns Promise containing the user basic data or error
@@ -68,6 +117,9 @@ export async function fetchUserBasic(
   }
 
   try {
+    // Wait for rate limiter before making the call
+    await rateLimiter.waitForSlot();
+    
     const url = `${BASE_URL}/${targetId}/basic?striptags=true`;
 
     const response = await fetch(url, {
