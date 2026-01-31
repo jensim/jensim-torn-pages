@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Settings from './pages/Settings';
 import Help from './pages/Help';
+import { BountiesList } from './components';
 
 function App() {
   return (
@@ -15,7 +16,7 @@ function App() {
       <div className="App">
         <Menu />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<BountiesList />} />
           <Route path="/about" element={<About />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
