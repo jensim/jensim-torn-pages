@@ -27,17 +27,34 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 describe('PasswordInput Component', () => {
+  const mockOnChange = jest.fn();
+  const mockOnClear = jest.fn();
+
   beforeEach(() => {
-    localStorageMock.clear();
+    mockOnChange.mockClear();
+    mockOnClear.mockClear();
   });
 
   test('renders password input with label', () => {
-    render(<PasswordInput name="test-password" label="Test Password" />);
+    render(
+      <PasswordInput 
+        value="" 
+        onChange={mockOnChange} 
+        label="Test Password" 
+        id="test-password"
+      />
+    );
     expect(screen.getByLabelText('Test Password')).toBeInTheDocument();
   });
 
   test('toggles password visibility', () => {
-    render(<PasswordInput name="test-password" />);
+    render(
+      <PasswordInput 
+        value="" 
+        onChange={mockOnChange} 
+        id="test-password"
+      />
+    );
     const input = screen.getByPlaceholderText('Enter password') as HTMLInputElement;
     const toggleButton = screen.getByTitle('Show password');
 
@@ -50,42 +67,59 @@ describe('PasswordInput Component', () => {
     expect(input.type).toBe('password');
   });
 
-  test('updates password value on input', () => {
-    render(<PasswordInput name="test-password" />);
+  test('calls onChange when input value changes', () => {
+    render(
+      <PasswordInput 
+        value="" 
+        onChange={mockOnChange} 
+        id="test-password"
+      />
+    );
     const input = screen.getByPlaceholderText('Enter password') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: 'mySecretPassword' } });
-    expect(input.value).toBe('mySecretPassword');
+    expect(mockOnChange).toHaveBeenCalledWith('mySecretPassword');
   });
 
-  test('stores password in localStorage', () => {
-    render(<PasswordInput name="test-password" />);
-    const input = screen.getByPlaceholderText('Enter password');
-
-    fireEvent.change(input, { target: { value: 'mySecretPassword' } });
-    expect(localStorageMock.getItem('password_test-password')).toBe('mySecretPassword');
-  });
-
-  test('clears password when clear button is clicked', () => {
-    render(<PasswordInput name="test-password" />);
+  test('displays the provided value', () => {
+    render(
+      <PasswordInput 
+        value="existingPassword" 
+        onChange={mockOnChange} 
+        id="test-password"
+      />
+    );
     const input = screen.getByPlaceholderText('Enter password') as HTMLInputElement;
 
-    fireEvent.change(input, { target: { value: 'mySecretPassword' } });
-    expect(input.value).toBe('mySecretPassword');
+    expect(input.value).toBe('existingPassword');
+  });
+
+  test('calls onClear when clear button is clicked', () => {
+    render(
+      <PasswordInput 
+        value="mySecretPassword" 
+        onChange={mockOnChange} 
+        onClear={mockOnClear}
+        id="test-password"
+      />
+    );
 
     const clearButton = screen.getByTitle('Clear password');
     fireEvent.click(clearButton);
     
-    expect(input.value).toBe('');
-    expect(localStorageMock.getItem('password_test-password')).toBeNull();
+    expect(mockOnClear).toHaveBeenCalled();
   });
 
-  test('loads password from localStorage on mount', () => {
-    localStorageMock.setItem('password_test-password', 'existingPassword');
-    render(<PasswordInput name="test-password" />);
-    const input = screen.getByPlaceholderText('Enter password') as HTMLInputElement;
+  test('does not show clear button when no onClear callback is provided', () => {
+    render(
+      <PasswordInput 
+        value="mySecretPassword" 
+        onChange={mockOnChange} 
+        id="test-password"
+      />
+    );
 
-    expect(input.value).toBe('existingPassword');
+    expect(screen.queryByTitle('Clear password')).not.toBeInTheDocument();
   });
 });
 

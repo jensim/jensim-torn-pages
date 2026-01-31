@@ -5,7 +5,7 @@ import { usePassword } from '../hooks/usePassword';
 
 const Settings: React.FC = () => {
   // Get the FF-scouter API key from localStorage
-  const { password: apiKey } = usePassword('ff-api-key');
+  const { password: apiKey, setPassword: setApiKey, clearPassword: clearApiKey } = usePassword('ff-api-key');
 
   return (
     <div className="App-header">
@@ -14,7 +14,10 @@ const Settings: React.FC = () => {
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '2rem' }}>
         <PasswordInput 
-          name="ff-api-key" 
+          id="ff-api-key"
+          value={apiKey}
+          onChange={setApiKey}
+          onClear={clearApiKey}
           label="FF-scouter API Key"
           placeholder="Enter your FF-scouter API key"
         />
