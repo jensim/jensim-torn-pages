@@ -10,6 +10,8 @@ This module provides functions to fetch basic user profile information from the 
 
 - Fetch basic profile information for a single user
 - Fetch basic information for multiple users with progress tracking
+- Automatic retry with exponential backoff for transient failures
+- Rate limiting (10 calls per second)
 - TypeScript type definitions for all API responses
 - Comprehensive error handling
 - Full test coverage
@@ -76,6 +78,34 @@ result.data.forEach(userData => {
 });
 ```
 
+### Custom Retry Configuration
+
+You can customize the retry behavior by passing a `RetryConfig` object:
+
+```typescript
+const result = await fetchUserBasic(
+  {
+    apiKey: 'your-api-key',
+    targetId: 123456,
+  },
+  {
+    maxRetries: 5,           // Maximum number of retry attempts (default: 3)
+    initialDelayMs: 2000,    // Initial delay before first retry (default: 1000)
+    maxDelayMs: 30000,       // Maximum delay between retries (default: 10000)
+    backoffMultiplier: 2,    // Exponential backoff multiplier (default: 2)
+  }
+);
+```
+
+The retry logic will automatically retry on:
+- Network errors (connection refused, timeouts, etc.)
+- HTTP 429 (rate limit exceeded)
+- HTTP 500, 502, 503 (server errors)
+
+It will **not** retry on:
+- HTTP 4xx errors (except 429) like 400, 401, 403, 404
+- Torn API errors (invalid key, incorrect ID, etc.)
+
 ## Type Definitions
 
 ### UserBasicResponse
@@ -116,6 +146,17 @@ interface UserStatus {
 interface FetchUserBasicResult {
   data: UserBasicResponse | null;
   error: string | null;
+}
+```
+
+### RetryConfig
+
+```typescript
+interface RetryConfig {
+  maxRetries: number;           // Maximum number of retry attempts
+  initialDelayMs: number;       // Initial delay before first retry
+  maxDelayMs: number;           // Maximum delay between retries
+  backoffMultiplier: number;    // Exponential backoff multiplier
 }
 ```
 
@@ -193,6 +234,8 @@ The module includes comprehensive unit tests covering:
 - HTTP errors
 - Torn API errors
 - Network failures
+- Retry logic with exponential backoff
+- Rate limiting behavior
 - Multiple user fetching
 - Progress callbacks
 

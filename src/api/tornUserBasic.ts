@@ -41,7 +41,62 @@ export interface FetchUserBasicResult {
   error: string | null;
 }
 
+/**
+ * Retry configuration
+ */
+export interface RetryConfig {
+  maxRetries: number;
+  initialDelayMs: number;
+  maxDelayMs: number;
+  backoffMultiplier: number;
+}
+
 const BASE_URL = 'https://api.torn.com/v2/user';
+
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxRetries: 3,
+  initialDelayMs: 1000,
+  maxDelayMs: 10000,
+  backoffMultiplier: 2,
+};
+
+/**
+ * Checks if an error should be retried
+ * @param status - HTTP status code
+ * @param error - Error object
+ * @returns Whether the request should be retried
+ */
+function shouldRetry(status?: number, error?: Error): boolean {
+  // Retry on network errors
+  if (error && error.message) {
+    const message = error.message.toLowerCase();
+    if (
+      message.includes('fetch') ||
+      message.includes('network') ||
+      message.includes('timeout') ||
+      message.includes('econnrefused') ||
+      message.includes('etimedout')
+    ) {
+      return true;
+    }
+  }
+
+  // Retry on specific HTTP status codes
+  if (status !== undefined) {
+    // Retry on rate limit (429) and server errors (500-503)
+    return status === 429 || status === 500 || status === 502 || status === 503;
+  }
+
+  return false;
+}
+
+/**
+ * Sleeps for a specified duration
+ * @param ms - Milliseconds to sleep
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /**
  * Rate limiter for Torn API calls
@@ -98,7 +153,8 @@ const rateLimiter = new RateLimiter(10);
  * @returns Promise containing the user basic data or error
  */
 export async function fetchUserBasic(
-  params: FetchUserBasicParams
+  params: FetchUserBasicParams,
+  retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
 ): Promise<FetchUserBasicResult> {
   const { apiKey, targetId } = params;
 
@@ -116,52 +172,90 @@ export async function fetchUserBasic(
     };
   }
 
-  try {
-    // Wait for rate limiter before making the call
-    await rateLimiter.waitForSlot();
-    
-    const url = `${BASE_URL}/${targetId}/basic?striptags=true`;
+  let lastError: string | null = null;
+  let lastStatus: number | undefined;
+  
+  // Attempt the request with retries
+  for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
+    try {
+      // Wait for rate limiter before making the call
+      await rateLimiter.waitForSlot();
+      
+      const url = `${BASE_URL}/${targetId}/basic?striptags=true`;
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `ApiKey ${apiKey}`,
-      },
-    });
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `ApiKey ${apiKey}`,
+        },
+      });
 
-    if (!response.ok) {
+      lastStatus = response.status;
+
+      if (!response.ok) {
+        lastError = `HTTP error! status: ${response.status}`;
+        
+        // Check if we should retry this error
+        if (shouldRetry(response.status) && attempt < retryConfig.maxRetries) {
+          const delay = Math.min(
+            retryConfig.initialDelayMs * Math.pow(retryConfig.backoffMultiplier, attempt),
+            retryConfig.maxDelayMs
+          );
+          await sleep(delay);
+          continue;
+        }
+        
+        return {
+          data: null,
+          error: lastError,
+        };
+      }
+
+      const data = await response.json();
+
+      // Check if the response is an error
+      if ('error' in data && data.error) {
+        const errorData = data as UserBasicError;
+        return {
+          data: null,
+          error: `Torn API Error (${errorData.error.code}): ${errorData.error.error}`,
+        };
+      }
+
       return {
-        data: null,
-        error: `HTTP error! status: ${response.status}`,
+        data: data as UserBasicResponse,
+        error: null,
       };
+    } catch (error) {
+      if (error instanceof Error) {
+        lastError = `Failed to fetch user basic info: ${error.message}`;
+        
+        // Check if we should retry this error
+        if (shouldRetry(lastStatus, error) && attempt < retryConfig.maxRetries) {
+          const delay = Math.min(
+            retryConfig.initialDelayMs * Math.pow(retryConfig.backoffMultiplier, attempt),
+            retryConfig.maxDelayMs
+          );
+          await sleep(delay);
+          continue;
+        }
+      } else {
+        lastError = 'Failed to fetch user basic info: Unknown error';
+      }
+      
+      // If we've exhausted retries or shouldn't retry, return the error
+      if (attempt >= retryConfig.maxRetries || !shouldRetry(lastStatus, error as Error)) {
+        return {
+          data: null,
+          error: lastError,
+        };
+      }
     }
-
-    const data = await response.json();
-
-    // Check if the response is an error
-    if ('error' in data && data.error) {
-      const errorData = data as UserBasicError;
-      return {
-        data: null,
-        error: `Torn API Error (${errorData.error.code}): ${errorData.error.error}`,
-      };
-    }
-
-    return {
-      data: data as UserBasicResponse,
-      error: null,
-    };
-  } catch (error) {
-    if (error instanceof Error) {
-      return {
-        data: null,
-        error: `Failed to fetch user basic info: ${error.message}`,
-      };
-    }
-    return {
-      data: null,
-      error: 'Failed to fetch user basic info: Unknown error',
-    };
   }
+
+  return {
+    data: null,
+    error: lastError || 'Failed to fetch user basic info after retries',
+  };
 }
 
 /**
@@ -169,18 +263,20 @@ export async function fetchUserBasic(
  * @param apiKey - Torn API key
  * @param targetIds - Array of target user IDs
  * @param onProgress - Optional callback for progress updates
+ * @param retryConfig - Optional retry configuration
  * @returns Promise containing all user data or error
  */
 export async function fetchMultipleUsersBasic(
   apiKey: string,
   targetIds: (number | string)[],
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
+  retryConfig?: RetryConfig
 ): Promise<{ data: UserBasicResponse[]; error: string | null }> {
   const results: UserBasicResponse[] = [];
   const errors: string[] = [];
 
   for (let i = 0; i < targetIds.length; i++) {
-    const result = await fetchUserBasic({ apiKey, targetId: targetIds[i] });
+    const result = await fetchUserBasic({ apiKey, targetId: targetIds[i] }, retryConfig);
 
     if (result.error) {
       errors.push(`User ${targetIds[i]}: ${result.error}`);
