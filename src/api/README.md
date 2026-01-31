@@ -1,6 +1,23 @@
 # Torn API Service
 
-This module provides a TypeScript API client for interacting with the Torn API v2 bounties endpoint.
+This module provides TypeScript API clients for interacting with the Torn API v2 and other related services.
+
+## Available Modules
+
+### 1. Torn Bounties (`tornBounties.ts`)
+Fetch bounty listings from the Torn API v2.
+
+[📖 View tornBounties Documentation](./tornBounties.ts)
+
+### 2. Torn User Basic (`tornUserBasic.ts`)
+Fetch basic user profile information including name, level, gender, and status.
+
+[📖 View tornUserBasic Documentation](./tornUserBasic.README.md)
+
+### 3. FF Scouter (`ffScouter.ts`)
+FF scouting functionality for the game.
+
+[📖 View ffScouter Documentation](./ffScouter.README.md)
 
 ## Features
 
@@ -13,7 +30,7 @@ This module provides a TypeScript API client for interacting with the Torn API v
 
 ## Installation
 
-The API service is located in `src/api/tornBounties.ts` and can be imported from `src/api`.
+The API services are located in `src/api/` and can be imported from `src/api`.
 
 ## Usage
 
@@ -254,14 +271,46 @@ Run the test suite:
 npm test src/api/tornBounties.test.ts
 ```
 
-## API Endpoint
+## API Endpoints
 
+### Torn Bounties
 Base URL: `https://api.torn.com/v2/torn/bounties`
 
 Query Parameters:
 - `key` - Your Torn API key (required)
 - `limit` - Number of results per page (default: 100)
 - `offset` - Offset for pagination (default: 0)
+
+### Torn User Basic
+Base URL: `https://api.torn.com/v2/user/{target_id}/basic`
+
+Query Parameters:
+- `striptags` - Strip HTML tags (default: true)
+
+Headers:
+- `Authorization: ApiKey {your-api-key}` (required)
+
+## Quick Start
+
+### Fetch Bounties
+```typescript
+import { fetchBounties } from './api';
+
+const result = await fetchBounties({
+  apiKey: 'your-key',
+  limit: 100,
+});
+```
+
+### Fetch User Info
+```typescript
+import { fetchUserBasic } from './api';
+
+const result = await fetchUserBasic({
+  apiKey: 'your-key',
+  targetId: 123456,
+});
+```
 
 ## License
 
