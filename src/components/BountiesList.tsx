@@ -19,16 +19,39 @@ const BountiesList: React.FC = () => {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
   const limit = 100;
-  const [filters, setFilters] = useState<FilterCriteria>({
-    minLevel: null,
-    maxLevel: null,
-    minReward: null,
-    maxReward: null,
-    minFairFight: null,
-    maxFairFight: null,
-    userStatus: null,
-    maxTimeRemaining: null,
-  });
+
+  // Load initial filters from localStorage
+  const getInitialFilters = (): FilterCriteria => {
+    try {
+      const savedFilters = localStorage.getItem('bounties-filters');
+      if (savedFilters) {
+        return JSON.parse(savedFilters);
+      }
+    } catch (error) {
+      console.error('Failed to load filters from localStorage:', error);
+    }
+    return {
+      minLevel: null,
+      maxLevel: null,
+      minReward: null,
+      maxReward: null,
+      minFairFight: null,
+      maxFairFight: null,
+      userStatus: null,
+      maxTimeRemaining: null,
+    };
+  };
+
+  const [filters, setFilters] = useState<FilterCriteria>(getInitialFilters);
+
+  // Save filters to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('bounties-filters', JSON.stringify(filters));
+    } catch (error) {
+      console.error('Failed to save filters to localStorage:', error);
+    }
+  }, [filters]);
 
   useEffect(() => {
     const loadBounties = async () => {
