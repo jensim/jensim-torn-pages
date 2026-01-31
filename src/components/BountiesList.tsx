@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchBounties, Bounty } from '../api';
 import { fetchStats, FFScouterStats } from '../api/ffScouter';
+import { fetchMultipleUsersBasic, UserBasicResponse } from '../api/tornUserBasic';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
@@ -10,8 +11,10 @@ const BountiesList: React.FC = () => {
   const { password: ffApiKey } = usePassword('ff-api-key');
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [fairFightData, setFairFightData] = useState<Map<number, FFScouterStats>>(new Map());
+  const [userStatusData, setUserStatusData] = useState<Map<number, UserBasicResponse>>(new Map());
   const [loading, setLoading] = useState(false);
   const [loadingFairFight, setLoadingFairFight] = useState(false);
+  const [loadingUserStatus, setLoadingUserStatus] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
@@ -23,6 +26,7 @@ const BountiesList: React.FC = () => {
     maxReward: null,
     minFairFight: null,
     maxFairFight: null,
+    userStatus: null,
   });
 
   useEffect(() => {
@@ -77,6 +81,35 @@ const BountiesList: React.FC = () => {
     loadFairFightData();
   }, [ffApiKey, bounties]);
 
+  useEffect(() => {
+    const loadUserStatusData = async () => {
+      if (!apiKey || bounties.length === 0) {
+        return;
+      }
+
+      setLoadingUserStatus(true);
+
+      const targetIds = bounties.map(bounty => bounty.target_id);
+      const result = await fetchMultipleUsersBasic(apiKey, targetIds);
+
+      if (result.error) {
+        toast.error(`Failed to load user status data: ${result.error}`);
+      }
+
+      if (result.data && result.data.length > 0) {
+        const statusMap = new Map<number, UserBasicResponse>();
+        result.data.forEach(userData => {
+          statusMap.set(userData.profile.id, userData);
+        });
+        setUserStatusData(statusMap);
+      }
+
+      setLoadingUserStatus(false);
+    };
+
+    loadUserStatusData();
+  }, [apiKey, bounties]);
+
   const handlePrevious = () => {
     if (offset >= limit) {
       setOffset(offset - limit);
@@ -90,6 +123,7 @@ const BountiesList: React.FC = () => {
   const filteredBounties = useMemo(() => {
     return bounties.filter(bounty => {
       const ffStats = fairFightData.get(bounty.target_id);
+      const userStatus = userStatusData.get(bounty.target_id);
       
       // Level filter
       if (filters.minLevel !== null && bounty.target_level < filters.minLevel) {
@@ -117,9 +151,16 @@ const BountiesList: React.FC = () => {
         }
       }
       
+      // User Status filter (only if data is available)
+      if (filters.userStatus !== null && userStatus) {
+        if (userStatus.profile.status.state !== filters.userStatus) {
+          return false;
+        }
+      }
+      
       return true;
     });
-  }, [bounties, fairFightData, filters]);
+  }, [bounties, fairFightData, userStatusData, filters]);
 
   const formatCurrency = (amount: number): string => {
     return `$${amount.toLocaleString()}`;
@@ -161,6 +202,7 @@ const BountiesList: React.FC = () => {
               <tr style={{ borderBottom: '2px solid #ddd' }}>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Target</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Level</th>
+                <th style={{ textAlign: 'center', padding: '8px' }}>Status</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Lister</th>
                 <th style={{ textAlign: 'right', padding: '8px' }}>Reward</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Fair Fight</th>
@@ -172,6 +214,7 @@ const BountiesList: React.FC = () => {
             <tbody>
               {filteredBounties.map((bounty, index) => {
                 const ffStats = fairFightData.get(bounty.target_id);
+                const userStatus = userStatusData.get(bounty.target_id);
                 return (
                   <tr 
                     key={`${bounty.target_id}-${index}`}
@@ -181,6 +224,24 @@ const BountiesList: React.FC = () => {
                       {bounty.target_name} ({bounty.target_id})
                     </td>
                     <td style={{ padding: '8px' }}>{bounty.target_level}</td>
+                    <td style={{ textAlign: 'center', padding: '8px' }}>
+                      {loadingUserStatus ? (
+                        <span style={{ fontSize: '0.9em', color: '#666' }}>Loading...</span>
+                      ) : userStatus ? (
+                        <span 
+                          style={{ 
+                            fontWeight: 'bold',
+                            color: userStatus.profile.status.color === 'red' ? '#dc3545' :
+                                   userStatus.profile.status.color === 'blue' ? '#007bff' :
+                                   userStatus.profile.status.color === 'green' ? '#28a745' : 'inherit'
+                          }}
+                        >
+                          {userStatus.profile.status.state}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.9em', color: '#999' }}>-</span>
+                      )}
+                    </td>
                     <td style={{ padding: '8px' }}>
                       {bounty.is_anonymous ? 'Anonymous' : `${bounty.lister_name} (${bounty.lister_id})`}
                     </td>

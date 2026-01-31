@@ -7,6 +7,7 @@ export interface FilterCriteria {
   maxReward: number | null;
   minFairFight: number | null;
   maxFairFight: number | null;
+  userStatus: string | null;
 }
 
 interface BountiesFilterProps {
@@ -31,6 +32,14 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
       maxReward: null,
       minFairFight: null,
       maxFairFight: null,
+      userStatus: null,
+    });
+  };
+
+  const handleStatusChange = (value: string) => {
+    onFilterChange({
+      ...filters,
+      userStatus: value === '' ? null : value,
     });
   };
 
@@ -161,6 +170,31 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
               min="0"
               step="0.1"
             />
+          </label>
+        </div>
+
+        {/* User Status Filter */}
+        <div style={filterGroupStyle}>
+          <strong>User Status</strong>
+          <label style={labelStyle}>
+            <span>Status</span>
+            <select
+              value={filters.userStatus ?? ''}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              style={{
+                ...inputStyle,
+                width: 'auto',
+                minWidth: '150px',
+              }}
+            >
+              <option value="">All Statuses</option>
+              <option value="Okay">Okay</option>
+              <option value="Hospital">Hospital</option>
+              <option value="Jail">Jail</option>
+              <option value="Federal">Federal</option>
+              <option value="Traveling">Traveling</option>
+              <option value="Abroad">Abroad</option>
+            </select>
           </label>
         </div>
       </div>
