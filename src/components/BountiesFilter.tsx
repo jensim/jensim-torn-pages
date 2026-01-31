@@ -8,6 +8,7 @@ export interface FilterCriteria {
   minFairFight: number | null;
   maxFairFight: number | null;
   userStatus: string | null;
+  maxTimeRemaining: number | null;
 }
 
 interface BountiesFilterProps {
@@ -33,6 +34,7 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
       minFairFight: null,
       maxFairFight: null,
       userStatus: null,
+      maxTimeRemaining: null,
     });
   };
 
@@ -195,6 +197,18 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
               <option value="Traveling">Traveling</option>
               <option value="Abroad">Abroad</option>
             </select>
+          </label>
+          <label style={labelStyle}>
+            <span>Max Time Remaining (mins)</span>
+            <input
+              type="number"
+              value={filters.maxTimeRemaining ?? ''}
+              onChange={(e) => handleInputChange('maxTimeRemaining', e.target.value)}
+              placeholder="Max minutes"
+              style={inputStyle}
+              min="0"
+              step="1"
+            />
           </label>
         </div>
       </div>

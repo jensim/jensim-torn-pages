@@ -27,6 +27,7 @@ const BountiesList: React.FC = () => {
     minFairFight: null,
     maxFairFight: null,
     userStatus: null,
+    maxTimeRemaining: null,
   });
 
   useEffect(() => {
@@ -121,6 +122,8 @@ const BountiesList: React.FC = () => {
   };
 
   const filteredBounties = useMemo(() => {
+    const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
+    
     return bounties.filter(bounty => {
       const ffStats = fairFightData.get(bounty.target_id);
       const userStatus = userStatusData.get(bounty.target_id);
@@ -158,6 +161,17 @@ const BountiesList: React.FC = () => {
         }
       }
       
+      // Max Time Remaining filter (only if data is available)
+      if (filters.maxTimeRemaining !== null && userStatus) {
+        const timeRemainingSeconds = userStatus.profile.status.until - currentTime;
+        const timeRemainingMinutes = timeRemainingSeconds / 60;
+        
+        // Only filter if the status has a future "until" timestamp
+        if (timeRemainingSeconds > 0 && timeRemainingMinutes > filters.maxTimeRemaining) {
+          return false;
+        }
+      }
+      
       return true;
     });
   }, [bounties, fairFightData, userStatusData, filters]);
@@ -168,6 +182,28 @@ const BountiesList: React.FC = () => {
 
   const formatDate = (timestamp: number): string => {
     return new Date(timestamp * 1000).toLocaleString();
+  };
+
+  const formatTimeRemaining = (until: number): string => {
+    const currentTime = Math.floor(Date.now() / 1000);
+    const remainingSeconds = until - currentTime;
+    
+    if (remainingSeconds <= 0) {
+      return '-';
+    }
+    
+    const hours = Math.floor(remainingSeconds / 3600);
+    const minutes = Math.floor((remainingSeconds % 3600) / 60);
+    
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      return `${days}d ${remainingHours}h`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
   };
 
   if (!apiKey) {
@@ -203,6 +239,7 @@ const BountiesList: React.FC = () => {
                 <th style={{ textAlign: 'left', padding: '8px' }}>Target</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Level</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Status</th>
+                <th style={{ textAlign: 'center', padding: '8px' }}>Time Remaining</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Lister</th>
                 <th style={{ textAlign: 'right', padding: '8px' }}>Reward</th>
                 <th style={{ textAlign: 'center', padding: '8px' }}>Fair Fight</th>
@@ -240,6 +277,15 @@ const BountiesList: React.FC = () => {
                         </span>
                       ) : (
                         <span style={{ fontSize: '0.9em', color: '#999' }}>-</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '8px', fontSize: '0.9em' }}>
+                      {loadingUserStatus ? (
+                        <span style={{ color: '#666' }}>Loading...</span>
+                      ) : userStatus ? (
+                        <span>{formatTimeRemaining(userStatus.profile.status.until)}</span>
+                      ) : (
+                        <span style={{ color: '#999' }}>-</span>
                       )}
                     </td>
                     <td style={{ padding: '8px' }}>
