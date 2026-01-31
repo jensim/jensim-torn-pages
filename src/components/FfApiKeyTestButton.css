@@ -1,0 +1,47 @@
+.ff-api-key-test-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.ff-api-key-test-container h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.test-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.test-button {
+  background-color: #61dafb;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #282c34;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.test-button:hover:not(:disabled) {
+  background-color: #4fc3dc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.test-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.test-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}

@@ -1,10 +1,11 @@
 import React from 'react';
 import PasswordInput from '../components/PasswordInput';
+import { FfApiKeyTestButton } from '../components';
 import { usePassword } from '../hooks/usePassword';
 
 const Settings: React.FC = () => {
-  // Example of accessing password directly with the hook
-  const { password: apiKeyPassword } = usePassword('api-key');
+  // Get the FF-scouter API key from localStorage
+  const { password: apiKey } = usePassword('ff-api-key');
 
   return (
     <div className="App-header">
@@ -13,33 +14,16 @@ const Settings: React.FC = () => {
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '2rem' }}>
         <PasswordInput 
-          name="api-key" 
-          label="API Key"
-          placeholder="Enter your API key"
-        />
-        
-        <PasswordInput 
-          name="database-password" 
-          label="Database Password"
-          placeholder="Enter database password"
-        />
-        
-        <PasswordInput 
-          name="admin-password" 
-          label="Admin Password"
-          placeholder="Enter admin password"
+          name="ff-api-key" 
+          label="FF-scouter API Key"
+          placeholder="Enter your FF-scouter API key"
         />
       </div>
 
-      {/* Example of accessing password value directly */}
-      {apiKeyPassword && (
-        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f0f0f0', borderRadius: '8px' }}>
-          <p><strong>Example:</strong> API Key is set (length: {apiKeyPassword.length})</p>
-          <p style={{ fontSize: '0.9rem', color: '#666' }}>
-            You can access password values anywhere using the usePassword hook!
-          </p>
-        </div>
-      )}
+      {/* Test FF-scouter API Key */}
+      <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f0f0f0', borderRadius: '8px' }}>
+        <FfApiKeyTestButton apiKey={apiKey} />
+      </div>
     </div>
   );
 };
