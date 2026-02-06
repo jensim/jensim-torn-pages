@@ -5,6 +5,7 @@ const Help: React.FC = () => {
     <div className="App-header">
       <h1>Help</h1>
       <p>This is the Help page.</p>
+      <p><a href="github.com/jensim/jensim-torn-pages/">Github Repository</a></p>
     </div>
   );
 };
