@@ -363,7 +363,7 @@ const BountiesList: React.FC = () => {
                       {loadingFairFight ? (
                         <span style={{ fontSize: '0.9em', color: '#666' }}>Loading...</span>
                       ) : ffStats ? (
-                        <span style={{ fontWeight: 'bold' }}>{ffStats.fair_fight.toFixed(2)}</span>
+                        <span style={{ fontWeight: 'bold' }}>{ffStats.fair_fight?.toFixed(2)}</span>
                       ) : ffApiKey ? (
                         <span style={{ fontSize: '0.9em', color: '#999' }}>N/A</span>
                       ) : (
