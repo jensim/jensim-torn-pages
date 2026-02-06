@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
 import { useNavigate } from 'react-router-dom';
 import BountyListRow from './BountyListRow';
+import Button from './Button';
 
 const BountiesList: React.FC = () => {
   const { password: apiKey } = usePassword('torn-api-key');
@@ -275,6 +276,17 @@ const BountiesList: React.FC = () => {
             </button>
           </div>
           
+          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+            <Button
+              onClick={handlePrevious}
+              disabled={!hasPrev || offset === 0 || loading}
+            >Previous</Button>
+            <Button
+              onClick={handleNext}
+              disabled={!hasNext || loading}
+            >Next</Button>
+          </div>
+
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #ddd' }}>
@@ -307,28 +319,14 @@ const BountiesList: React.FC = () => {
           </table>
           
           <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-            <button
+            <Button
               onClick={handlePrevious}
               disabled={!hasPrev || offset === 0 || loading}
-              style={{
-                padding: '8px 16px',
-                cursor: (!hasPrev || offset === 0 || loading) ? 'not-allowed' : 'pointer',
-                opacity: (!hasPrev || offset === 0 || loading) ? 0.5 : 1,
-              }}
-            >
-              Previous
-            </button>
-            <button
+            >Previous</Button>
+            <Button
               onClick={handleNext}
               disabled={!hasNext || loading}
-              style={{
-                padding: '8px 16px',
-                cursor: (!hasNext || loading) ? 'not-allowed' : 'pointer',
-                opacity: (!hasNext || loading) ? 0.5 : 1,
-              }}
-            >
-              Next
-            </button>
+            >Next</Button>
           </div>
         </>
       )}
