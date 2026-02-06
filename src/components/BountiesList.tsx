@@ -6,6 +6,7 @@ import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
 import { useNavigate } from 'react-router-dom';
+import BountyListRow from './BountyListRow';
 
 const BountiesList: React.FC = () => {
   const { password: apiKey } = usePassword('torn-api-key');
@@ -89,17 +90,19 @@ const BountiesList: React.FC = () => {
 
       setLoadingFairFight(true);
 
-      const targetIds = bounties.map(bounty => bounty.target_id);
+      const targetIds = Array.from(new Set(bounties.map(bounty => bounty.target_id)));
       const result = await fetchStats({ apiKey: ffApiKey, targetIds });
 
       if (result.error) {
         toast.error(`Failed to load fair fight data: ${result.error}`);
       } else if (result.data) {
-        const ffMap = new Map<number, FFScouterStats>();
-        result.data.forEach(stats => {
-          ffMap.set(stats.player_id, stats);
+        setFairFightData(prevMap => {
+          const newMap = new Map<number, FFScouterStats>(prevMap);
+          result.data?.forEach(stats => {
+            newMap.set(stats.player_id, stats);
+          });
+          return newMap;
         });
-        setFairFightData(ffMap);
       }
 
       setLoadingFairFight(false);
@@ -114,10 +117,8 @@ const BountiesList: React.FC = () => {
     }
 
     setLoadingUserStatus(true);
-    // Clear previous data
-    setUserStatusData(new Map());
 
-    const targetIds = filteredBounties.map(bounty => bounty.target_id);
+    const targetIds = Array.from(new Set(filteredBounties.map(bounty => bounty.target_id)));
     
     // Fetch user data progressively
     const errors: string[] = [];
@@ -152,7 +153,7 @@ const BountiesList: React.FC = () => {
   const handleNext = () => {
     setOffset(offset + limit);
   };
-
+  
   const filteredBounties = useMemo(() => {
     const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
     
@@ -214,28 +215,6 @@ const BountiesList: React.FC = () => {
 
   const formatDate = (timestamp: number): string => {
     return new Date(timestamp * 1000).toLocaleString();
-  };
-
-  const formatTimeRemaining = (until: number): string => {
-    const currentTime = Math.floor(Date.now() / 1000);
-    const remainingSeconds = until - currentTime;
-    
-    if (remainingSeconds <= 0) {
-      return '-';
-    }
-    
-    const hours = Math.floor(remainingSeconds / 3600);
-    const minutes = Math.floor((remainingSeconds % 3600) / 60);
-    
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      const remainingHours = hours % 24;
-      return `${days}d ${remainingHours}h`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
   };
 
   if (!apiKey) {
@@ -310,73 +289,20 @@ const BountiesList: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredBounties.map((bounty, index) => {
-                const ffStats = fairFightData.get(bounty.target_id);
-                const userStatus = userStatusData.get(bounty.target_id);
-                return (
-                  <tr 
-                    key={`${bounty.target_id}-${index}`}
-                    style={{ borderBottom: '1px solid #eee' }}
-                  >
-                    <td style={{ padding: '8px' }}>
-                      <a 
-                        href={`https://www.torn.com/profiles.php?XID=${bounty.target_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: 'inherit', textDecoration: 'underline' }}
-                      >
-                        {bounty.target_name} ({bounty.target_id})
-                      </a>
-                    </td>
-                    <td style={{ padding: '8px' }}>{bounty.target_level}</td>
-                    <td style={{ textAlign: 'center', padding: '8px' }}>
-                      {loadingUserStatus ? (
-                        <span style={{ fontSize: '0.9em', color: '#666' }}>Loading...</span>
-                      ) : userStatus ? (
-                        <span 
-                          style={{ 
-                            fontWeight: 'bold',
-                            color: userStatus.profile.status.color === 'red' ? '#dc3545' :
-                                   userStatus.profile.status.color === 'blue' ? '#007bff' :
-                                   userStatus.profile.status.color === 'green' ? '#28a745' : 'inherit'
-                          }}
-                        >
-                          {userStatus.profile.status.state}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.9em', color: '#999' }}>-</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center', padding: '8px', fontSize: '0.9em' }}>
-                      {loadingUserStatus ? (
-                        <span style={{ color: '#666' }}>Loading...</span>
-                      ) : userStatus ? (
-                        <span>{formatTimeRemaining(userStatus.profile.status.until)}</span>
-                      ) : (
-                        <span style={{ color: '#999' }}>-</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>
-                      {formatCurrency(bounty.reward)}
-                    </td>
-                    <td style={{ textAlign: 'center', padding: '8px' }}>
-                      {loadingFairFight ? (
-                        <span style={{ fontSize: '0.9em', color: '#666' }}>Loading...</span>
-                      ) : ffStats ? (
-                        <span style={{ fontWeight: 'bold' }}>{ffStats.fair_fight?.toFixed(2)}</span>
-                      ) : ffApiKey ? (
-                        <span style={{ fontSize: '0.9em', color: '#999' }}>N/A</span>
-                      ) : (
-                        <span style={{ fontSize: '0.9em', color: '#999' }}>-</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center', padding: '8px' }}>{bounty.quantity}</td>
-                    <td style={{ padding: '8px', fontSize: '0.9em' }}>
-                      {formatDate(bounty.valid_until)}
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredBounties.map((bounty, index) => (
+                <BountyListRow
+                  key={`${bounty.target_id}-${index}`}
+                  bounty={bounty}
+                  index={index}
+                  ffStats={fairFightData.get(bounty.target_id)}
+                  userStatus={userStatusData.get(bounty.target_id)}
+                  loadingUserStatus={loadingUserStatus}
+                  loadingFairFight={loadingFairFight}
+                  hasFfApiKey={!!ffApiKey}
+                  formatCurrency={formatCurrency}
+                  formatDate={formatDate}
+                />
+              ))}
             </tbody>
           </table>
           
