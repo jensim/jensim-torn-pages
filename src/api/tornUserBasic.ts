@@ -4,7 +4,7 @@
  */
 
 // Type definitions for the Torn User Basic API response
-export interface UserStatus {
+export interface UserStatusV2 {
   description: string;
   details: string;
   state: string;
@@ -12,32 +12,32 @@ export interface UserStatus {
   until: number;
 }
 
-export interface UserProfile {
+export interface UserProfileV2 {
   id: number;
   name: string;
   level: number;
   gender: string;
-  status: UserStatus;
+  status: UserStatusV2;
 }
 
-export interface UserBasicResponse {
-  profile: UserProfile;
+export interface UserBasicResponseV2 {
+  profile: UserProfileV2;
 }
 
-export interface UserBasicError {
+export interface UserBasicErrorV2 {
   error: {
     code: number;
     error: string;
   };
 }
 
-export interface FetchUserBasicParams {
+export interface FetchUserBasicParamsV2 {
   apiKey: string;
   targetId: number | string;
 }
 
-export interface FetchUserBasicResult {
-  data: UserBasicResponse | null;
+export interface FetchUserBasicResultV2 {
+  data: UserBasicResponseV2 | null;
   error: string | null;
 }
 
@@ -152,10 +152,10 @@ const rateLimiter = new RateLimiter(10);
  * @param params - Parameters including API key and target user ID
  * @returns Promise containing the user basic data or error
  */
-export async function fetchUserBasic(
-  params: FetchUserBasicParams,
+export async function fetchUserBasicV2(
+  params: FetchUserBasicParamsV2,
   retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
-): Promise<FetchUserBasicResult> {
+): Promise<FetchUserBasicResultV2> {
   const { apiKey, targetId } = params;
 
   if (!apiKey || apiKey.trim() === '') {
@@ -214,7 +214,7 @@ export async function fetchUserBasic(
 
       // Check if the response is an error
       if ('error' in data && data.error) {
-        const errorData = data as UserBasicError;
+        const errorData = data as UserBasicErrorV2;
         return {
           data: null,
           error: `Torn API Error (${errorData.error.code}): ${errorData.error.error}`,
@@ -222,7 +222,7 @@ export async function fetchUserBasic(
       }
 
       return {
-        data: data as UserBasicResponse,
+        data: data as UserBasicResponseV2,
         error: null,
       };
     } catch (error) {
@@ -266,17 +266,17 @@ export async function fetchUserBasic(
  * @param retryConfig - Optional retry configuration
  * @returns Promise containing all user data or error
  */
-export async function fetchMultipleUsersBasic(
+export async function fetchMultipleUsersBasicV2(
   apiKey: string,
   targetIds: (number | string)[],
   onProgress?: (current: number, total: number) => void,
   retryConfig?: RetryConfig
-): Promise<{ data: UserBasicResponse[]; error: string | null }> {
-  const results: UserBasicResponse[] = [];
+): Promise<{ data: UserBasicResponseV2[]; error: string | null }> {
+  const results: UserBasicResponseV2[] = [];
   const errors: string[] = [];
 
   for (let i = 0; i < targetIds.length; i++) {
-    const result = await fetchUserBasic({ apiKey, targetId: targetIds[i] }, retryConfig);
+    const result = await fetchUserBasicV2({ apiKey, targetId: targetIds[i] }, retryConfig);
 
     if (result.error) {
       errors.push(`User ${targetIds[i]}: ${result.error}`);
