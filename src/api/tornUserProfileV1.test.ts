@@ -1,10 +1,17 @@
 import {
   fetchUserProfileV1,
+  fetchUserProfileV1Cached,
   UserProfileV1,
   UserProfileV1Error,
 } from './tornUserProfileV1';
 
 global.fetch = jest.fn();
+
+const CACHE_PREFIX = 'torn_user_profile_v1_';
+
+function getCacheKey(userId: number | string): string {
+  return `${CACHE_PREFIX}${String(userId)}`;
+}
 
 const mockProfile: UserProfileV1 = {
   rank: 'Average Hired Gun',
@@ -272,5 +279,99 @@ describe('tornUserProfileV1 API', () => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
       expect(elapsed).toBeGreaterThanOrEqual(490); // allow small variance
     }, 5000);
+  });
+
+  describe('fetchUserProfileV1Cached', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('should return cached profile when fresh', async () => {
+      const key = getCacheKey(4093819);
+      const entry = { data: mockProfile, timestamp: Date.now() };
+      localStorage.setItem(key, JSON.stringify(entry));
+
+      const result = await fetchUserProfileV1Cached(
+        { apiKey: 'key', userId: 4093819 },
+        { maxAgeMs: 60_000 }
+      );
+
+      expect(result.data).toEqual(mockProfile);
+      expect(result.error).toBeNull();
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should fetch and cache when cache is empty', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfile,
+      });
+
+      const result = await fetchUserProfileV1Cached(
+        { apiKey: 'key', userId: 4093819 },
+        { maxAgeMs: 60_000 }
+      );
+
+      expect(result.data).toEqual(mockProfile);
+      expect(result.error).toBeNull();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      const key = getCacheKey(4093819);
+      const stored = JSON.parse(localStorage.getItem(key) ?? '');
+      expect(stored.data).toEqual(mockProfile);
+      expect(typeof stored.timestamp).toBe('number');
+    });
+
+    it('should fetch when cache is older than maxAgeMs', async () => {
+      const key = getCacheKey(4093819);
+      const entry = {
+        data: { ...mockProfile, name: 'OldName' },
+        timestamp: Date.now() - 120_000,
+      };
+      localStorage.setItem(key, JSON.stringify(entry));
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfile,
+      });
+
+      const result = await fetchUserProfileV1Cached(
+        { apiKey: 'key', userId: 4093819 },
+        { maxAgeMs: 60_000 }
+      );
+
+      expect(result.data).toEqual(mockProfile);
+      expect(result.data?.name).toBe('Wulfven');
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const stored = JSON.parse(localStorage.getItem(key) ?? '');
+      expect(stored.data.name).toBe('Wulfven');
+    });
+
+    it('should not cache on fetch error', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+      const result = await fetchUserProfileV1Cached(
+        { apiKey: 'key', userId: 4093819 },
+        { maxAgeMs: 60_000 }
+      );
+
+      expect(result.data).toBeNull();
+      expect(result.error).not.toBeNull();
+      expect(localStorage.getItem(getCacheKey(4093819))).toBeNull();
+    });
+
+    it('should return error for invalid params without calling fetch', async () => {
+      const result = await fetchUserProfileV1Cached(
+        { apiKey: '', userId: 4093819 },
+        { maxAgeMs: 60_000 }
+      );
+
+      expect(result.data).toBeNull();
+      expect(result.error).toBe('API key is required');
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
   });
 });

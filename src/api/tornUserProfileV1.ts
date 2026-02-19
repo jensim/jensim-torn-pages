@@ -78,7 +78,7 @@ export interface UserProfileV1 {
   name: string;
   property_id: number;
   revivable: number;
-  profile_image: string;
+  profile_image?: string;
   life: UserProfileV1Life;
   status: UserProfileV1Status;
   job?: UserProfileV1Job;
@@ -107,7 +107,14 @@ export interface FetchUserProfileV1Result {
   error: string | null;
 }
 
+/** Options for cached fetch. */
+export interface FetchUserProfileV1CachedOptions {
+  /** Max age of cache in ms. If the cached value is older, a fresh request is made. */
+  maxAgeMs: number;
+}
+
 const BASE_URL = 'https://api.torn.com/user';
+const CACHE_PREFIX = 'torn_user_profile_v1_';
 const REQUEST_TIMEOUT_MS = 250;
 const RATE_LIMIT_MS = 500;
 const MAX_RETRIES = 3;
@@ -161,6 +168,42 @@ class ProfileV1RateLimiter {
 }
 
 const rateLimiter = new ProfileV1RateLimiter();
+
+interface CachedProfileEntry {
+  data: UserProfileV1;
+  timestamp: number;
+}
+
+function getProfileCacheKey(userId: number | string): string {
+  return `${CACHE_PREFIX}${String(userId)}`;
+}
+
+function getCachedProfile(
+  userId: number | string,
+  maxAgeMs: number
+): UserProfileV1 | null {
+  try {
+    const key = getProfileCacheKey(userId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const entry: CachedProfileEntry = JSON.parse(raw);
+    const now = Date.now();
+    if (now - entry.timestamp > maxAgeMs) return null;
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedProfile(userId: number | string, data: UserProfileV1): void {
+  try {
+    const key = getProfileCacheKey(userId);
+    const entry: CachedProfileEntry = { data, timestamp: Date.now() };
+    localStorage.setItem(key, JSON.stringify(entry));
+  } catch (error) {
+    console.error('Error writing user profile cache:', error);
+  }
+}
 
 /**
  * Fetches user profile from Torn API v1.
@@ -246,4 +289,36 @@ export async function fetchUserProfileV1(
     data: null,
     error: lastError || 'Failed to fetch user profile after retries',
   };
+}
+
+/**
+ * Fetches user profile with localStorage cache.
+ * Returns cached data if present and younger than maxAgeMs; otherwise calls fetchUserProfileV1
+ * and stores the result on success.
+ */
+export async function fetchUserProfileV1Cached(
+  params: FetchUserProfileV1Params,
+  options: FetchUserProfileV1CachedOptions
+): Promise<FetchUserProfileV1Result> {
+  const { apiKey, userId } = params;
+  const { maxAgeMs } = options;
+
+  if (!apiKey || apiKey.trim() === '') {
+    return { data: null, error: 'API key is required' };
+  }
+
+  if (userId === undefined || userId === null || userId === '') {
+    return { data: null, error: 'User ID is required' };
+  }
+
+  const cached = getCachedProfile(userId, maxAgeMs);
+  if (cached) {
+    return { data: cached, error: null };
+  }
+
+  const result = await fetchUserProfileV1(params);
+  if (result.data) {
+    setCachedProfile(userId, result.data);
+  }
+  return result;
 }

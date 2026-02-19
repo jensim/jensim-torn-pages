@@ -9,6 +9,7 @@ This module fetches the full user profile from the Torn API v1 `user/{userId}` e
 ## Features
 
 - Single-user profile fetch with full response typing
+- Cached variant: `fetchUserProfileV1Cached` with configurable max age (localStorage)
 - Rate limiting: 1 request start every 500ms (concurrent calls serialized)
 - Request timeout: 250ms per attempt
 - Retry: up to 3 retries (4 attempts total) on timeout, network errors, 429, and 5xx
@@ -25,9 +26,11 @@ This module fetches the full user profile from the Torn API v1 `user/{userId}` e
 ```typescript
 import {
   fetchUserProfileV1,
+  fetchUserProfileV1Cached,
   UserProfileV1,
   FetchUserProfileV1Params,
   FetchUserProfileV1Result,
+  FetchUserProfileV1CachedOptions,
 } from './api/tornUserProfileV1';
 ```
 
@@ -52,6 +55,23 @@ if (result.error) {
 }
 ```
 
+### Fetch User Profile (cached)
+
+Uses localStorage. If a cached profile for the user exists and is newer than `maxAgeMs`, it is returned without a request. Otherwise `fetchUserProfileV1` is called and the result is cached on success.
+
+```typescript
+const result = await fetchUserProfileV1Cached(
+  { apiKey: 'your-api-key', userId: 4093819 },
+  { maxAgeMs: 5 * 60 * 1000 }  // 5 minutes
+);
+
+if (result.error) {
+  console.error('Error:', result.error);
+} else if (result.data) {
+  console.log('Name:', result.data.name);
+}
+```
+
 ## Behavior
 
 - **Rate limit**: Only one request may **start** every 500ms. Multiple concurrent callers are queued and run with at least 500ms between starts.
@@ -63,6 +83,7 @@ if (result.error) {
 - `UserProfileV1` – Full profile (rank, level, life, status, job, faction, etc.; some nested fields optional).
 - `FetchUserProfileV1Params` – `{ apiKey: string; userId: number | string }`.
 - `FetchUserProfileV1Result` – `{ data: UserProfileV1 | null; error: string | null }`.
+- `FetchUserProfileV1CachedOptions` – `{ maxAgeMs: number }` for cache freshness.
 
 ## Errors
 
