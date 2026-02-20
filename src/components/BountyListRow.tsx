@@ -3,6 +3,7 @@ import { Bounty } from '../api';
 import { FFScouterStats } from '../api/ffScouter';
 import { UserProfileV1 } from '../api/tornUserProfileV1';
 import TimeRemaining from './TimeRemaining';
+import { getTimeUntil } from './timeUntil';
 
 export interface BountyListRowProps {
   bounty: Bounty;
@@ -15,6 +16,8 @@ export interface BountyListRowProps {
   formatCurrency: (amount: number) => string;
   formatDate: (timestamp: number) => string;
 }
+
+
 
 const BountyListRow: React.FC<BountyListRowProps> = ({
   bounty,
@@ -67,7 +70,7 @@ const BountyListRow: React.FC<BountyListRowProps> = ({
         {loadingUserStatus ? (
           <span style={{ color: '#666' }}>Loading...</span>
         ) : userStatus ? (
-          <TimeRemaining until={userStatus.status.until} />
+          <TimeRemaining untilSeconds={getTimeUntil(userStatus)} />
         ) : (
           <span style={{ color: '#999' }}>-</span>
         )}

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 
 const formatTimeRemaining = (currentTime: number, until: number): string => {
     const remainingSeconds = until - currentTime;
-    
     if (remainingSeconds <= 0) {
       return '-';
     }
@@ -24,9 +23,9 @@ const formatTimeRemaining = (currentTime: number, until: number): string => {
     }
   };
 interface TimeRemainingProps {
-  until: number;
+  untilSeconds?: number;
 }
-const TimeRemaining: React.FC<TimeRemainingProps> = ({ until }) => {
+const TimeRemaining: React.FC<TimeRemainingProps> = ({ untilSeconds }) => {
     const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000));
     useEffect(() => {
         const interval = setInterval(() => {
@@ -36,7 +35,7 @@ const TimeRemaining: React.FC<TimeRemainingProps> = ({ until }) => {
     }, []);
 
   return (
-    <span>{formatTimeRemaining(currentTime, until)}</span>
+    <span>{untilSeconds ? formatTimeRemaining(currentTime, untilSeconds) : '-'}</span>
   );
 };
 

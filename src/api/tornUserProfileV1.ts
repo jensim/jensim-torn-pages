@@ -3,6 +3,7 @@
  * Fetches full user profile from Torn API v1 with retry, rate limit, and timeout.
  */
 
+import { getTimeUntil } from '../components/timeUntil';
 import { httpWrapper } from './helpers/httpWrapper';
 import { RateLimiter } from './helpers/rateLimiter';
 
@@ -148,6 +149,10 @@ async function fetchUserProfileV1OneAttempt(
         data: null,
         error: `Torn API Error (${err.error.code}): ${err.error.error}`,
       };
+    }
+    const timeUntil = getTimeUntil(data as UserProfileV1);
+    if (timeUntil) {
+      data.status.until = timeUntil;
     }
     return { data: data as UserProfileV1, error: null };
   } catch (error) {

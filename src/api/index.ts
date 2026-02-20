@@ -8,5 +8,4 @@ export * from './helpers/rateLimiter';
 export * from './helpers/retry';
 export * from './tornBounties';
 export * from './ffScouter';
-export * from './tornUserBasic';
 export * from './tornUserProfileV1';
