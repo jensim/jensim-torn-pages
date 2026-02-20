@@ -3,6 +3,10 @@
  * Fetches full user profile from Torn API v1 with retry, rate limit, and timeout.
  */
 
+import { Cache } from './cache';
+import { RateLimiter } from './rateLimiter';
+import { withRetry } from './retry';
+
 // Nested types for the Torn User Profile V1 API response
 export interface UserProfileV1Life {
   current: number;
@@ -116,92 +120,40 @@ export interface FetchUserProfileV1CachedOptions {
 const BASE_URL = 'https://api.torn.com/user';
 const CACHE_PREFIX = 'torn_user_profile_v1_';
 const REQUEST_TIMEOUT_MS = 250;
-const RATE_LIMIT_MS = 500;
+const RATE_LIMIT_COOLDOWN_MS = 500;
 const MAX_RETRIES = 3;
 
-const DEFAULT_RETRY_CONFIG = {
-  maxRetries: MAX_RETRIES,
-  initialDelayMs: 500,
-  maxDelayMs: 5000,
-  backoffMultiplier: 2,
-};
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function shouldRetry(status?: number, error?: Error): boolean {
-  if (error) {
-    const name = (error as Error & { name?: string }).name;
-    if (name === 'AbortError') return true;
-    const message = (error.message || '').toLowerCase();
-    if (
-      message.includes('fetch') ||
-      message.includes('network') ||
-      message.includes('timeout') ||
-      message.includes('econnrefused') ||
-      message.includes('etimedout')
-    ) {
-      return true;
-    }
-  }
-  if (status !== undefined) {
-    return status === 429 || status === 500 || status === 502 || status === 503;
-  }
-  return false;
-}
+const profileRateLimiter = new RateLimiter({ cooldownMs: RATE_LIMIT_COOLDOWN_MS });
 
 /**
- * Rate limiter: allows starting one request every 500ms.
+ * Single attempt to fetch user profile (no retry, no rate limit). Used inside rate limiter + retry.
  */
-class ProfileV1RateLimiter {
-  private lastStartTime = 0;
-
-  async waitForSlot(): Promise<void> {
-    const now = Date.now();
-    const elapsed = now - this.lastStartTime;
-    if (elapsed < RATE_LIMIT_MS) {
-      await sleep(RATE_LIMIT_MS - elapsed);
+async function fetchUserProfileV1OneAttempt(
+  apiKey: string,
+  userId: number | string
+): Promise<FetchUserProfileV1Result> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const url = `${BASE_URL}/${userId}?key=${encodeURIComponent(apiKey)}`;
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      return { data: null, error: `HTTP error! status: ${response.status}` };
     }
-    this.lastStartTime = Date.now();
-  }
-}
-
-const rateLimiter = new ProfileV1RateLimiter();
-
-interface CachedProfileEntry {
-  data: UserProfileV1;
-  timestamp: number;
-}
-
-function getProfileCacheKey(userId: number | string): string {
-  return `${CACHE_PREFIX}${String(userId)}`;
-}
-
-function getCachedProfile(
-  userId: number | string,
-  maxAgeMs: number
-): UserProfileV1 | null {
-  try {
-    const key = getProfileCacheKey(userId);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const entry: CachedProfileEntry = JSON.parse(raw);
-    const now = Date.now();
-    if (now - entry.timestamp > maxAgeMs) return null;
-    return entry.data;
-  } catch {
-    return null;
-  }
-}
-
-function setCachedProfile(userId: number | string, data: UserProfileV1): void {
-  try {
-    const key = getProfileCacheKey(userId);
-    const entry: CachedProfileEntry = { data, timestamp: Date.now() };
-    localStorage.setItem(key, JSON.stringify(entry));
+    const data = await response.json();
+    if ('error' in data && data.error) {
+      const err = data as UserProfileV1Error;
+      return {
+        data: null,
+        error: `Torn API Error (${err.error.code}): ${err.error.error}`,
+      };
+    }
+    return { data: data as UserProfileV1, error: null };
   } catch (error) {
-    console.error('Error writing user profile cache:', error);
+    clearTimeout(timeoutId);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { data: null, error: `Failed to fetch user profile: ${message}` };
   }
 }
 
@@ -222,73 +174,16 @@ export async function fetchUserProfileV1(
     return { data: null, error: 'User ID is required' };
   }
 
-  const retryConfig = DEFAULT_RETRY_CONFIG;
-  let lastError: string | null = null;
-  let lastStatus: number | undefined;
-
-  for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    try {
-      await rateLimiter.waitForSlot();
-
-      const url = `${BASE_URL}/${userId}?key=${encodeURIComponent(apiKey)}`;
-      const response = await fetch(url, { signal: controller.signal });
-
-      clearTimeout(timeoutId);
-      lastStatus = response.status;
-
-      if (!response.ok) {
-        lastError = `HTTP error! status: ${response.status}`;
-        if (shouldRetry(response.status) && attempt < retryConfig.maxRetries) {
-          const delay = Math.min(
-            retryConfig.initialDelayMs * Math.pow(retryConfig.backoffMultiplier, attempt),
-            retryConfig.maxDelayMs
-          );
-          await sleep(delay);
-          continue;
-        }
-        return { data: null, error: lastError };
-      }
-
-      const data = await response.json();
-
-      if ('error' in data && data.error) {
-        const err = data as UserProfileV1Error;
-        return {
-          data: null,
-          error: `Torn API Error (${err.error.code}): ${err.error.error}`,
-        };
-      }
-
-      return { data: data as UserProfileV1, error: null };
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (error instanceof Error) {
-        lastError = `Failed to fetch user profile: ${error.message}`;
-        if (shouldRetry(lastStatus, error) && attempt < retryConfig.maxRetries) {
-          const delay = Math.min(
-            retryConfig.initialDelayMs * Math.pow(retryConfig.backoffMultiplier, attempt),
-            retryConfig.maxDelayMs
-          );
-          await sleep(delay);
-          continue;
-        }
-      } else {
-        lastError = 'Failed to fetch user profile: Unknown error';
-      }
-      return {
-        data: null,
-        error: lastError || 'Failed to fetch user profile after retries',
-      };
+  return withRetry(
+    () =>
+      profileRateLimiter.run(() =>
+        fetchUserProfileV1OneAttempt(apiKey, userId)
+      ),
+    {
+      maxRetries: MAX_RETRIES,
+      isSuccess: (r) => r.error === null,
     }
-  }
-
-  return {
-    data: null,
-    error: lastError || 'Failed to fetch user profile after retries',
-  };
+  );
 }
 
 /**
@@ -311,14 +206,9 @@ export async function fetchUserProfileV1Cached(
     return { data: null, error: 'User ID is required' };
   }
 
-  const cached = getCachedProfile(userId, maxAgeMs);
-  if (cached) {
-    return { data: cached, error: null };
-  }
-
-  const result = await fetchUserProfileV1(params);
-  if (result.data) {
-    setCachedProfile(userId, result.data);
-  }
-  return result;
+  const cache = new Cache<UserProfileV1>({
+    storageKey: `${CACHE_PREFIX}${String(userId)}`,
+    maxStalenessMs: maxAgeMs,
+  });
+  return cache.getOrLoad(() => fetchUserProfileV1(params));
 }
