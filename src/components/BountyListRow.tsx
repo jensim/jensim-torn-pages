@@ -1,14 +1,14 @@
 import React from 'react';
 import { Bounty } from '../api';
 import { FFScouterStats } from '../api/ffScouter';
-import { UserBasicResponse } from '../api/tornUserBasic';
+import { UserProfileV1 } from '../api/tornUserProfileV1';
 import TimeRemaining from './TimeRemaining';
 
 export interface BountyListRowProps {
   bounty: Bounty;
   index: number;
   ffStats: FFScouterStats | undefined;
-  userStatus: UserBasicResponse | undefined;
+  userStatus: UserProfileV1 | undefined;
   loadingUserStatus: boolean;
   loadingFairFight: boolean;
   hasFfApiKey: boolean;
@@ -48,16 +48,16 @@ const BountyListRow: React.FC<BountyListRowProps> = ({
             style={{
               fontWeight: 'bold',
               color:
-                userStatus.profile.status.color === 'red'
+                userStatus.status.color === 'red'
                   ? '#dc3545'
-                  : userStatus.profile.status.color === 'blue'
+                  : userStatus.status.color === 'blue'
                     ? '#007bff'
-                    : userStatus.profile.status.color === 'green'
+                    : userStatus.status.color === 'green'
                       ? '#28a745'
                       : 'inherit',
             }}
           >
-            {userStatus.profile.status.state}
+            {userStatus.status.state}
           </span>
         ) : (
           <span style={{ fontSize: '0.9em', color: '#999' }}>-</span>
@@ -67,7 +67,7 @@ const BountyListRow: React.FC<BountyListRowProps> = ({
         {loadingUserStatus ? (
           <span style={{ color: '#666' }}>Loading...</span>
         ) : userStatus ? (
-          <TimeRemaining until={userStatus.profile.status.until} />
+          <TimeRemaining until={userStatus.status.until} />
         ) : (
           <span style={{ color: '#999' }}>-</span>
         )}

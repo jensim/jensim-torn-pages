@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchBounties, Bounty } from '../api';
 import { fetchStats, FFScouterStats } from '../api/ffScouter';
-import { fetchUserBasicV2, UserBasicResponseV2 } from '../api/tornUserBasic';
+import { fetchUserProfileV1Cached, UserProfileV1 } from '../api/tornUserProfileV1';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
@@ -14,7 +14,7 @@ const BountiesList: React.FC = () => {
   const { password: ffApiKey } = usePassword('ff-api-key');
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [fairFightData, setFairFightData] = useState<Map<number, FFScouterStats>>(new Map());
-  const [userStatusData, setUserStatusData] = useState<Map<number, UserBasicResponseV2>>(new Map());
+  const [userStatusData, setUserStatusData] = useState<Map<number, UserProfileV1>>(new Map());
   const [loading, setLoading] = useState(false);
   const [loadingFairFight, setLoadingFairFight] = useState(false);
   const [loadingUserStatus, setLoadingUserStatus] = useState(false);
@@ -124,15 +124,18 @@ const BountiesList: React.FC = () => {
     // Fetch user data progressively
     const errors: string[] = [];
     for (const targetId of targetIds) {
-      const result = await fetchUserBasicV2({ apiKey, targetId });
-      
+      const result = await fetchUserProfileV1Cached(
+        { apiKey, userId: targetId },
+        { maxAgeMs: 5 * 60 * 1000 }
+      );
+
       if (result.error) {
         errors.push(`User ${targetId}: ${result.error}`);
       } else if (result.data) {
         // Update state immediately as each user's data arrives
         setUserStatusData(prevMap => {
           const newMap = new Map(prevMap);
-          newMap.set(result.data!.profile.id, result.data!);
+          newMap.set(result.data!.player_id, result.data!);
           return newMap;
         });
       }
@@ -190,14 +193,14 @@ const BountiesList: React.FC = () => {
       
       // User Status filter (only if data is available)
       if (filters.userStatus !== null && userStatus) {
-        if (userStatus.profile.status.state !== filters.userStatus) {
+        if (userStatus.status.state !== filters.userStatus) {
           return false;
         }
       }
-      
+
       // Max Time Remaining filter (only if data is available)
       if (filters.maxTimeRemaining !== null && userStatus) {
-        const timeRemainingSeconds = userStatus.profile.status.until - currentTime;
+        const timeRemainingSeconds = userStatus.status.until - currentTime;
         const timeRemainingMinutes = timeRemainingSeconds / 60;
         
         // Only filter if the status has a future "until" timestamp
