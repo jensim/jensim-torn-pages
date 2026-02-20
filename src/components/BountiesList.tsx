@@ -165,6 +165,11 @@ const BountiesList: React.FC = () => {
       const ffStats = fairFightData.get(bounty.target_id);
       const userStatus = userStatusData.get(bounty.target_id);
       
+
+      if ( userStatusData.get(bounty.target_id)?.basicicons?.icon72 === 'Newbie') {
+        return false;
+      }
+
       // Level filter
       if (filters.minLevel !== null && bounty.target_level < filters.minLevel) {
         return false;

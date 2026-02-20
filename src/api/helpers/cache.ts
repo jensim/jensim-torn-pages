@@ -5,7 +5,7 @@
  * cached responses are returned without going through the queue.
  */
 
-export interface CacheOptions<T> {
+export interface CacheOptions {
   /** localStorage key for this cache. */
   storageKey: string;
   /** Max age in ms. Entries older than this are considered stale and not returned. */
@@ -21,7 +21,7 @@ export class Cache<T> {
   private readonly storageKey: string;
   private readonly maxStalenessMs: number;
 
-  constructor(options: CacheOptions<T>) {
+  constructor(options: CacheOptions) {
     this.storageKey = options.storageKey;
     this.maxStalenessMs = options.maxStalenessMs;
   }

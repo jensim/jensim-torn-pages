@@ -24,7 +24,7 @@ export interface DataOrError<T> {
 /** Options for creating an http wrapper. */
 export interface HttpWrapperOptions<T> {
   /** Cache instance or options to create one. If omitted, no caching (still retry + rate limit). */
-  cache?: Cache<T> | CacheOptions<T>;
+  cache?: Cache<T> | CacheOptions;
   /** Rate limiter instance. Required. */
   rateLimiter: RateLimiter;
   /** Retry options. */
