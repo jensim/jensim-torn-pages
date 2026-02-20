@@ -288,7 +288,7 @@ describe('tornUserProfileV1 API', () => {
 
     it('should return cached profile when fresh', async () => {
       const key = getCacheKey(4093819);
-      const entry = { data: mockProfile, timestamp: Date.now() };
+      const entry = { value: mockProfile, timestamp: Date.now() };
       localStorage.setItem(key, JSON.stringify(entry));
 
       const result = await fetchUserProfileV1Cached(
@@ -318,14 +318,14 @@ describe('tornUserProfileV1 API', () => {
 
       const key = getCacheKey(4093819);
       const stored = JSON.parse(localStorage.getItem(key) ?? '');
-      expect(stored.data).toEqual(mockProfile);
+      expect(stored.value).toEqual(mockProfile);
       expect(typeof stored.timestamp).toBe('number');
     });
 
     it('should fetch when cache is older than maxAgeMs', async () => {
       const key = getCacheKey(4093819);
       const entry = {
-        data: { ...mockProfile, name: 'OldName' },
+        value: { ...mockProfile, name: 'OldName' },
         timestamp: Date.now() - 120_000,
       };
       localStorage.setItem(key, JSON.stringify(entry));
@@ -344,7 +344,7 @@ describe('tornUserProfileV1 API', () => {
       expect(result.data?.name).toBe('Wulfven');
       expect(global.fetch).toHaveBeenCalledTimes(1);
       const stored = JSON.parse(localStorage.getItem(key) ?? '');
-      expect(stored.data.name).toBe('Wulfven');
+      expect(stored.value.name).toBe('Wulfven');
     });
 
     it('should not cache on fetch error', async () => {

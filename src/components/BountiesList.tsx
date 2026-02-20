@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchBounties, Bounty } from '../api';
 import { fetchStats, FFScouterStats } from '../api/ffScouter';
-import { fetchUserBasic, UserBasicResponse } from '../api/tornUserBasic';
+import { fetchUserBasicV2, UserBasicResponseV2 } from '../api/tornUserBasic';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
@@ -14,7 +14,7 @@ const BountiesList: React.FC = () => {
   const { password: ffApiKey } = usePassword('ff-api-key');
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [fairFightData, setFairFightData] = useState<Map<number, FFScouterStats>>(new Map());
-  const [userStatusData, setUserStatusData] = useState<Map<number, UserBasicResponse>>(new Map());
+  const [userStatusData, setUserStatusData] = useState<Map<number, UserBasicResponseV2>>(new Map());
   const [loading, setLoading] = useState(false);
   const [loadingFairFight, setLoadingFairFight] = useState(false);
   const [loadingUserStatus, setLoadingUserStatus] = useState(false);
@@ -124,7 +124,7 @@ const BountiesList: React.FC = () => {
     // Fetch user data progressively
     const errors: string[] = [];
     for (const targetId of targetIds) {
-      const result = await fetchUserBasic({ apiKey, targetId });
+      const result = await fetchUserBasicV2({ apiKey, targetId });
       
       if (result.error) {
         errors.push(`User ${targetId}: ${result.error}`);

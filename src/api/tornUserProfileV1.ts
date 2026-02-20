@@ -3,9 +3,8 @@
  * Fetches full user profile from Torn API v1 with retry, rate limit, and timeout.
  */
 
-import { Cache } from './cache';
-import { RateLimiter } from './rateLimiter';
-import { withRetry } from './retry';
+import { httpWrapper } from './helpers/httpWrapper';
+import { RateLimiter } from './helpers/rateLimiter';
 
 // Nested types for the Torn User Profile V1 API response
 export interface UserProfileV1Life {
@@ -122,6 +121,7 @@ const CACHE_PREFIX = 'torn_user_profile_v1_';
 const REQUEST_TIMEOUT_MS = 250;
 const RATE_LIMIT_COOLDOWN_MS = 500;
 const MAX_RETRIES = 3;
+const RUN_TIMEOUT_MS = 1_000;
 
 const profileRateLimiter = new RateLimiter({ cooldownMs: RATE_LIMIT_COOLDOWN_MS });
 
@@ -174,22 +174,28 @@ export async function fetchUserProfileV1(
     return { data: null, error: 'User ID is required' };
   }
 
-  return withRetry(
-    () =>
-      profileRateLimiter.run(() =>
-        fetchUserProfileV1OneAttempt(apiKey, userId)
-      ),
+  return httpWrapper(
     {
-      maxRetries: MAX_RETRIES,
-      isSuccess: (r) => r.error === null,
-    }
+      rateLimiter: profileRateLimiter,
+      retry: {
+        maxRetries: MAX_RETRIES,
+        isSuccess: (r) =>
+          r.error === null ||
+          (r.error !== null &&
+            (r.error.includes('Torn API Error') ||
+              r.error.startsWith('HTTP error! status: 4'))),
+      },
+      timeoutMs: RUN_TIMEOUT_MS,
+    },
+    () => fetchUserProfileV1OneAttempt(apiKey, userId)
   );
 }
 
 /**
  * Fetches user profile with localStorage cache.
- * Returns cached data if present and younger than maxAgeMs; otherwise calls fetchUserProfileV1
- * and stores the result on success.
+ * Returns cached data if present and younger than maxAgeMs; otherwise fetches (with retry and
+ * rate limit). Before running the request, cache is checked again in case it was updated while
+ * waiting in the rate limit queue.
  */
 export async function fetchUserProfileV1Cached(
   params: FetchUserProfileV1Params,
@@ -206,9 +212,23 @@ export async function fetchUserProfileV1Cached(
     return { data: null, error: 'User ID is required' };
   }
 
-  const cache = new Cache<UserProfileV1>({
-    storageKey: `${CACHE_PREFIX}${String(userId)}`,
-    maxStalenessMs: maxAgeMs,
-  });
-  return cache.getOrLoad(() => fetchUserProfileV1(params));
+  return httpWrapper(
+    {
+      cache: {
+        storageKey: `${CACHE_PREFIX}${String(userId)}`,
+        maxStalenessMs: maxAgeMs,
+      },
+      rateLimiter: profileRateLimiter,
+      retry: {
+        maxRetries: MAX_RETRIES,
+        isSuccess: (r) =>
+          r.error === null ||
+          (r.error !== null &&
+            (r.error.includes('Torn API Error') ||
+              r.error.startsWith('HTTP error! status: 4'))),
+      },
+      timeoutMs: RUN_TIMEOUT_MS,
+    },
+    () => fetchUserProfileV1OneAttempt(apiKey, userId)
+  );
 }
