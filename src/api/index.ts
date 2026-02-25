@@ -9,3 +9,4 @@ export * from './helpers/retry';
 export * from './bounty/tornBounties';
 export * from './ffscouter/ffScouter';
 export * from './user/tornUserProfileV1';
+export * from './properties/properties';
