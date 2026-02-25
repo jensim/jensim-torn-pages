@@ -11,8 +11,8 @@ const Menu: React.FC<MenuProps> = ({ items = [] }) => {
   const navigate = useNavigate();
 
   const defaultItems = items.length > 0 ? items : [
-    { label: 'Home', onClick: () => navigate('/') },
-    { label: 'About', onClick: () => navigate('/about') },
+    { label: 'Bounties', onClick: () => navigate('/') },
+    { label: 'Rentals', onClick: () => navigate('/rentals') },
     { label: 'Settings', onClick: () => navigate('/settings') },
     { label: 'Help', onClick: () => navigate('/help') },
   ];

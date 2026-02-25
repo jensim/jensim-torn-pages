@@ -3,9 +3,9 @@
  * Fetches full user profile from Torn API v1 with retry, rate limit, and timeout.
  */
 
-import { getTimeUntil } from '../components/timeUntil';
-import { httpWrapper } from './helpers/httpWrapper';
-import { RateLimiter } from './helpers/rateLimiter';
+import { getTimeUntil } from '../../components/timeUntil';
+import { httpWrapper } from '../helpers/httpWrapper';
+import { RateLimiter } from '../helpers/rateLimiter';
 
 // Nested types for the Torn User Profile V1 API response
 export interface UserProfileV1Life {

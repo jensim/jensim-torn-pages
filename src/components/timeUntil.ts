@@ -1,4 +1,4 @@
-import { UserProfileV1 } from "../api/tornUserProfileV1";
+import { UserProfileV1 } from "../api/user/tornUserProfileV1";
 
 const min = 60;
 const hour = 60 * min;

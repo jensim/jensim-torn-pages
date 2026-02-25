@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { fetchBounties, Bounty } from '../api';
-import { fetchStats, FFScouterStats } from '../api/ffScouter';
-import { fetchUserProfileV1Cached, UserProfileV1 } from '../api/tornUserProfileV1';
+import { fetchBounties, Bounty, FFScouterStats, fetchUserProfileV1Cached, UserProfileV1, fetchStats} from '../api';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';

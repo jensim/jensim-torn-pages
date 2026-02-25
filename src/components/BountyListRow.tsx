@@ -1,7 +1,5 @@
 import React from 'react';
-import { Bounty } from '../api';
-import { FFScouterStats } from '../api/ffScouter';
-import { UserProfileV1 } from '../api/tornUserProfileV1';
+import { Bounty, FFScouterStats, UserProfileV1 } from '../api';
 import TimeRemaining from './TimeRemaining';
 import { getTimeUntil } from './timeUntil';
 
