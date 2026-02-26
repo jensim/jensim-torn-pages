@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchProperties, fetchRentals, Properties, Property, Rental } from "../api";
+import { fetchProperties, fetchRentals, Properties, Rental } from "../api";
 import { usePassword } from "../hooks/usePassword";
 import { PropertySelector } from "../components/property/propertySelector";
 import { RentalsTable, SortBy } from "../components/property/RentalsTable";
