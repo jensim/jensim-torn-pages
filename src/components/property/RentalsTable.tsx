@@ -10,6 +10,7 @@ export enum SortBy {
     MARKET_PRICE = 'market_price',
     UPKEEP = 'upkeep',
     HAPPY = 'happy',
+    DAILY_COST_PER_HAPPY = 'daily_cost_per_happy',
 }
 
 export interface RentalsTableProps {
@@ -60,7 +61,10 @@ export const RentalsTable = ({ propertyId, rentals, requiredMods, maxPrice, minH
                 <th onClick={() => handleSort(SortBy.UPKEEP)}>
                     Upkeep {sortBy === SortBy.UPKEEP ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
                 </th>
-                <th>Upkeep+CostPerDay</th>
+                <th onClick={() => handleSort(SortBy.DAILY_COST_PER_HAPPY)}>
+                    Daily cost per happy {sortBy === SortBy.DAILY_COST_PER_HAPPY ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th>Total daily cost</th>
                 <th onClick={() => handleSort(SortBy.RENTAL_PERIOD)}>
                     Rental period {sortBy === SortBy.RENTAL_PERIOD ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
                 </th>
@@ -80,7 +84,8 @@ export const RentalsTable = ({ propertyId, rentals, requiredMods, maxPrice, minH
                     <td><FormattedPrice price={rental.cost} /></td>
                     <td><FormattedPrice price={rental.cost_per_day} /></td>
                     <td><FormattedPrice price={rental.upkeep} /></td>
-                    <td><FormattedPrice price={rental.upkeep + rental.cost_per_day} /></td>
+                    <td><FormattedPrice price={rental.daily_cost_per_happy} /></td>
+                    <td><FormattedPrice price={rental.total_daily_cost} /></td>
                     <td>{rental.rental_period}</td>
                     <td><FormattedPrice price={rental.market_price} /></td>
                     <td><FormattedNumber number={rental.happy} /></td>

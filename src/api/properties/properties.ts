@@ -28,6 +28,8 @@ export interface Rental {
     upkeep: number;
     modifications: string[];
     page: number | null;
+    total_daily_cost: number;
+    daily_cost_per_happy: number;
 }
 
 export interface Rentals {
@@ -64,6 +66,8 @@ export async function fetchRentals(apiKey: string, propertyId: number): Promise<
         data.rentals.listings.forEach((l: Rental, index: number) => {
             const fullIndex = offsetInternal + index;
             l.page = fullIndex;
+            l.total_daily_cost = l.cost_per_day + l.upkeep;
+            l.daily_cost_per_happy = l.total_daily_cost / l.happy;
             rentals.push(l);
         });
         offset += 100;

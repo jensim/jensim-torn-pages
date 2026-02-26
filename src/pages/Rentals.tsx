@@ -15,7 +15,7 @@ export default function Rentals() {
     const [properties, setProperties] = useState<Properties | null>(null);
     const [property, setProperty] = useState<number | null>(null);
     const [requiredMods, setRequiredMods] = useState<string[]>([]);
-    const [sortBy, setSortBy] = useState<SortBy>(SortBy.COST_PER_DAY);
+    const [sortBy, setSortBy] = useState<SortBy>(SortBy.DAILY_COST_PER_HAPPY);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     const [maxPrice, setMaxPrice] = useState<number | null>(null);
