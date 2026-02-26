@@ -9,3 +9,10 @@ tr:hover {
 tr.odd {
     background-color: #ffffff;
 }
+
+th {
+  position: sticky;
+  background-color: white;
+  z-index: 9999;
+  top: 0;
+}
