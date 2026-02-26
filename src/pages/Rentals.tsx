@@ -42,8 +42,8 @@ export default function Rentals() {
     if (!apiKey) {
         return (
           <div style={{ padding: '20px' }}>
-            <h2>Torn Bounties</h2>
-            <p>Please set your Torn API key in the Settings page to view bounties.</p>
+            <h2>Torn Rentals</h2>
+            <p>Please set your Torn API key in the Settings page to view rentals.</p>
             <button
               onClick={() => navigate('/settings')}
               style={{
