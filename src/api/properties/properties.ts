@@ -60,8 +60,9 @@ export async function fetchRentals(apiKey: string, propertyId: number): Promise<
         if(data.rentals.listings.length === 0) {
             break;
         }
+        const offsetInternal = offset;
         data.rentals.listings.forEach((l: Rental, index: number) => {
-            const fullIndex = offset + index;
+            const fullIndex = offsetInternal + index;
             l.page = fullIndex;
             rentals.push(l);
         });
