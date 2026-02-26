@@ -3,8 +3,8 @@ export interface Property {
     cost: number;
     happy: number;
     upkeep: number;
-    upgradesAvailable: string[];
-    staffAvailable: string[];
+    upgrades_available: string[];
+    staff_available: string[];
 }
 
 export interface Properties {
@@ -27,6 +27,7 @@ export interface Rental {
     market_price: number;
     upkeep: number;
     modifications: string[];
+    page: number | null;
 }
 
 export interface Rentals {
@@ -49,7 +50,7 @@ export interface RentalsResponse {
 }
 
 
-export async function fetchRentals(apiKey: string, propertyId: string): Promise<Rental[]> {
+export async function fetchRentals(apiKey: string, propertyId: number): Promise<Rental[]> {
     let rentals: Rental[] = [];
     let offset = 0;
     while (true) {
@@ -59,7 +60,11 @@ export async function fetchRentals(apiKey: string, propertyId: string): Promise<
         if(data.rentals.listings.length === 0) {
             break;
         }
-        rentals.push(...data.rentals.listings);
+        data.rentals.listings.forEach((l: Rental, index: number) => {
+            const fullIndex = offset + index;
+            l.page = fullIndex;
+            rentals.push(l);
+        });
         offset += 100;
     }
     return rentals;

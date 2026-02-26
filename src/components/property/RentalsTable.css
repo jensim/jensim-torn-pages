@@ -1,0 +1,11 @@
+tr.even {
+    background-color: #f0f0f0;
+}
+
+tr:hover {
+    background-color: #e0e0e0;
+}
+
+tr.odd {
+    background-color: #ffffff;
+}
