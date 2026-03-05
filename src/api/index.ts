@@ -10,3 +10,4 @@ export * from './bounty/tornBounties';
 export * from './ffscouter/ffScouter';
 export * from './user/tornUserProfileV1';
 export * from './properties/properties';
+export * from './elimination/elimination';
