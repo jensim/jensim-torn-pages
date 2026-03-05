@@ -7,6 +7,7 @@ import Menu from './Menu';
 import Settings from './pages/Settings';
 import Help from './pages/Help';
 import Rentals from './pages/Rentals';
+import Elimination from './pages/Elimination';
 import { BountiesList } from './components';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
           <Route path="/rentals" element={<Rentals />} />
+          <Route path="/elimination" element={<Elimination />} />
         </Routes>
         <ToastContainer
           position="top-right"

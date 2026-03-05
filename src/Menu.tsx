@@ -12,6 +12,7 @@ const Menu: React.FC<MenuProps> = ({ items = [] }) => {
 
   const defaultItems = items.length > 0 ? items : [
     { label: 'Bounties', onClick: () => navigate('/') },
+    { label: 'Elimination', onClick: () => navigate('/elimination') },
     { label: 'Rentals', onClick: () => navigate('/rentals') },
     { label: 'Settings', onClick: () => navigate('/settings') },
     { label: 'Help', onClick: () => navigate('/help') },
