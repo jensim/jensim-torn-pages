@@ -8,6 +8,7 @@ import Settings from './pages/Settings';
 import Help from './pages/Help';
 import Rentals from './pages/Rentals';
 import Elimination from './pages/Elimination';
+import AuctionHouse from './pages/AuctionHouse';
 import { BountiesList } from './components';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/help" element={<Help />} />
           <Route path="/rentals" element={<Rentals />} />
           <Route path="/elimination" element={<Elimination />} />
+          <Route path="/auctionhouse" element={<AuctionHouse />} />
         </Routes>
         <ToastContainer
           position="top-right"

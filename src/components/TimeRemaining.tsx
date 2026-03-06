@@ -1,26 +1,28 @@
 import { useState, useEffect } from 'react';
 
 const formatTimeRemaining = (currentTime: number, until: number): string => {
-    const remainingSeconds = until - currentTime;
-    if (remainingSeconds <= 0) {
-      return '-';
-    }
-    
+    let remainingSeconds = until - currentTime;
+    const isNegative = remainingSeconds < 0;
+    remainingSeconds = Math.abs(remainingSeconds);
+
     const hours = Math.floor(remainingSeconds / 3600);
     const minutes = Math.floor((remainingSeconds % 3600) / 60);
     const seconds = remainingSeconds % 60;
-    
+
+    let result: string;
+
     if (hours > 24) {
       const days = Math.floor(hours / 24);
       const remainingHours = hours % 24;
-      return `${days}d ${remainingHours}h`;
+      result = `${days}d ${remainingHours}h`;
     } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+      result = `${hours}h ${minutes}m`;
     } else if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
+        result = `${minutes}m ${seconds}s`;
     } else {
-        return `${seconds}s`;
+        result = `${seconds}s`;
     }
+    return isNegative ? `-${result}` : result;
   };
 interface TimeRemainingProps {
   untilSeconds?: number;
