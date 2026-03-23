@@ -16,6 +16,12 @@ export const FormattedTime = ({ timeSeconds }: { timeSeconds: number }) => {
 }
 
 function formatNumber(number: number): string {
+    if (number >= 1_000_000_000_000_000) {
+        return formatNumberWith(number, 1_000_000_000_000_000, 'Q');
+    }
+    if (number > 1_000_000_000_000) {
+        return formatNumberWith(number, 1_000_000_000_000, 'T');
+    }
     if (number >= 1_000_000_000) {
         return formatNumberWith(number, 1_000_000_000, 'B');
     }

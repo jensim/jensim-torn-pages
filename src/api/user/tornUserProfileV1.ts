@@ -120,7 +120,7 @@ export interface FetchUserProfileV1CachedOptions {
 const BASE_URL = 'https://api.torn.com/user';
 const CACHE_PREFIX = 'torn_user_profile_v1_';
 const REQUEST_TIMEOUT_MS = 250;
-const RATE_LIMIT_COOLDOWN_MS = 500;
+const RATE_LIMIT_COOLDOWN_MS = 50;
 const MAX_RETRIES = 3;
 const RUN_TIMEOUT_MS = 1_000;
 
