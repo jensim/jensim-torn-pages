@@ -108,9 +108,10 @@ export async function fetchAuctionHouse(apiKey: string): Promise<FetchAuctionHou
       }
 
       const auctionResponse = data as AuctionHouseResponse;
+      const pageInternal = page;
       const entries = auctionResponse.auctionhouse.map((entry) => ({
         ...entry,
-        page,
+        page: pageInternal,
       }));
 
       allEntries.push(...entries);
