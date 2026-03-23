@@ -83,7 +83,7 @@ export async function fetchAuctionHouse(apiKey: string): Promise<FetchAuctionHou
   }
 
   const allEntries: AuctionHouseEntry[] = [];
-  let nextUrl: string | null = `${BASE_URL}?limit=20&key=${apiKey}`;
+  let nextUrl: string | null = `${BASE_URL}?limit=100&sort=desc&key=${apiKey}`;
   let page = 1;
 
   try {

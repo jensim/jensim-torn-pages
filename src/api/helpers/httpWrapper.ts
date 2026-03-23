@@ -4,16 +4,35 @@
  *
  * 1. Check cache first — return immediately if response is fresh (no rate limit or request).
  * 2. Retry wrapper — on failure, retry (each attempt goes through rate limit again).
- * 3. Rate limit — take a ticket and wait; when it's our turn, proceed.
+ * 3. Rate limit (optional) — take a ticket and wait; when it's our turn, proceed.
  * 4. Before executing the run function — check cache again (may have been updated while waiting).
  * 5. Run — execute the actual request; on success, store in cache.
  *
- * Timeout is applied per execution of the run function (via rate limiter).
+ * Timeout (if set) applies only to the actual `run()` call, not cache checks or queue wait.
  */
 
 import { Cache, CacheOptions } from './cache';
-import { RateLimiter, RunOptions as RateLimiterRunOptions } from './rateLimiter';
+import { RateLimiter } from './rateLimiter';
 import { RetryOptions, withRetry } from './retry';
+
+function withTimeout<T>(fn: () => Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(
+      () => reject(new Error(`HTTP wrapper call timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
+    fn().then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      }
+    );
+  });
+}
 
 /** Result shape used by API calls: either data or error. */
 export interface DataOrError<T> {
@@ -23,13 +42,13 @@ export interface DataOrError<T> {
 
 /** Options for creating an http wrapper. */
 export interface HttpWrapperOptions<T> {
-  /** Cache instance or options to create one. If omitted, no caching (still retry + rate limit). */
+  /** Cache instance or options to create one. If omitted, no caching (still retries). */
   cache?: Cache<T> | CacheOptions;
-  /** Rate limiter instance. Required. */
-  rateLimiter: RateLimiter;
+  /** Rate limiter instance. If omitted, attempts run immediately (timeout still applies if set). */
+  rateLimiter?: RateLimiter;
   /** Retry options. */
   retry: RetryOptions<DataOrError<T>>;
-  /** Optional timeout in ms for each run (passed to rate limiter). */
+  /** Optional timeout in ms for each `run()` invocation. */
   timeoutMs?: number;
 }
 
@@ -37,11 +56,11 @@ export interface HttpWrapperOptions<T> {
  * Builds a wrapped function that:
  * - Returns cached data if fresh
  * - Retries on failure (each attempt goes through rate limit)
- * - Respects rate limit (one slot per run)
+ * - Optionally respects rate limit (one slot per run)
  * - Re-checks cache before running (in case cache was filled while waiting)
  * - Runs the given loader and caches successful results
  *
- * @param options - Cache, rate limiter, retry, and optional timeout
+ * @param options - Cache, optional rate limiter, retry, and optional timeout
  * @param run - The actual request: () => Promise<{ data: T | null; error: string | null }>
  * @returns Promise with data or error
  */
@@ -65,30 +84,31 @@ export async function httpWrapper<T>(
     }
   }
 
-  const runOptions: RateLimiterRunOptions | undefined =
-    timeoutMs != null ? { timeoutMs } : undefined;
+  const executeAttempt = async (): Promise<DataOrError<T>> => {
+    // 4. Before executing: check cache again (may have been updated while waiting)
+    if (cache) {
+      const cachedAgain = cache.get();
+      if (cachedAgain !== null) {
+        return { data: cachedAgain, error: null };
+      }
+    }
 
-  // 2. Retry wraps 3–5; each retry gets a new rate-limit ticket
-  return withRetry(
-    () =>
-      rateLimiter.run(async (): Promise<DataOrError<T>> => {
-        // 4. Before executing: check cache again (may have been updated while waiting)
-        if (cache) {
-          const cachedAgain = cache.get();
-          if (cachedAgain !== null) {
-            return { data: cachedAgain, error: null };
-          }
-        }
+    // 5. Run the actual request (timeout applies only to this call)
+    const result =
+      timeoutMs != null
+        ? await withTimeout(run, timeoutMs)
+        : await run();
+    if (result.data !== null && cache) {
+      cache.set(result.data);
+    }
+    return result;
+  };
 
-        // 5. Run the actual request
-        const result = await run();
-        if (result.data !== null && cache) {
-          cache.set(result.data);
-        }
-        return result;
-      }, runOptions),
-    retry
-  );
+  const runAttempt = (): Promise<DataOrError<T>> =>
+    rateLimiter ? rateLimiter.run(executeAttempt) : executeAttempt();
+
+  // 2. Retry wraps 3–5; each retry gets a new rate-limit ticket when a limiter is used
+  return withRetry(runAttempt, retry);
 }
 
 /**
