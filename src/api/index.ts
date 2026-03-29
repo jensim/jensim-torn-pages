@@ -12,3 +12,4 @@ export * from './user/tornUserProfileV1';
 export * from './properties/properties';
 export * from './elimination/elimination';
 export * from './company/companyTypes';
+export * from './company/companies';
