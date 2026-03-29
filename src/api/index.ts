@@ -13,3 +13,4 @@ export * from './properties/properties';
 export * from './elimination/elimination';
 export * from './company/companyTypes';
 export * from './company/companies';
+export * from './user/workStats';

@@ -1,10 +1,29 @@
 import { Cache } from '../helpers/cache';
 import { httpWrapper, DataOrError } from '../helpers/httpWrapper';
 
+export interface CompanyPosition {
+  man_required: number;
+  int_required: number;
+  end_required: number;
+  man_gain: number;
+  int_gain: number;
+  end_gain: number;
+  special_ability: string;
+  description: string;
+}
+
+export interface CompanySpecial {
+  effect: string;
+  cost: number;
+  rating_required: number;
+}
+
 export interface CompanyTypeInfo {
   name: string;
   cost: number;
   default_employees: number;
+  positions: Record<string, CompanyPosition>;
+  specials: Record<string, CompanySpecial>;
 }
 
 export interface CompanyTypesResponse {
