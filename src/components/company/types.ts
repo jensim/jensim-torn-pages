@@ -9,7 +9,7 @@ export interface CompanyFilterCriteria {
 
 export const defaultCompanyFilters: CompanyFilterCriteria = {
   companyTypeId: null,
-  minStars: null,
+  minStars: 7,
   maxStars: null,
   excludeInactiveDirector: false,
   countInactiveAsFreeSpot: false,

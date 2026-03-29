@@ -13,6 +13,23 @@ import CompanyTable from '../components/company/CompanyTable';
 import { CompanyFilterCriteria, defaultCompanyFilters } from '../components/company/types';
 import './Companies.css';
 
+const STORAGE_KEY = 'companies-filters';
+
+type PersistedFilters = Omit<CompanyFilterCriteria, 'companyTypeId'>;
+
+function getInitialFilters(): CompanyFilterCriteria {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed: PersistedFilters = JSON.parse(saved);
+      return { ...defaultCompanyFilters, ...parsed, companyTypeId: null };
+    }
+  } catch (error) {
+    console.error('Failed to load company filters from localStorage:', error);
+  }
+  return defaultCompanyFilters;
+}
+
 const Companies: React.FC = () => {
   const { password: apiKey } = usePassword('torn-api-key');
 
@@ -26,7 +43,17 @@ const Companies: React.FC = () => {
   const [companyDetails, setCompanyDetails] = useState<Record<number, CompanyDetail>>({});
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const [filters, setFilters] = useState<CompanyFilterCriteria>(defaultCompanyFilters);
+  const [filters, setFilters] = useState<CompanyFilterCriteria>(getInitialFilters);
+
+  // Persist filter preferences (excluding companyTypeId) to localStorage
+  useEffect(() => {
+    try {
+      const { companyTypeId, ...persisted } = filters;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+    } catch (error) {
+      console.error('Failed to save company filters to localStorage:', error);
+    }
+  }, [filters]);
 
   // Ref to track current type ID for stale-request detection in handleLoadDetails
   const currentTypeIdRef = useRef<string | null>(filters.companyTypeId);
