@@ -1,0 +1,27 @@
+.company-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.company-table th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid #ddd;
+  font-weight: 600;
+}
+
+.company-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.company-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.company-table-empty {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+}
