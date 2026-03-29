@@ -11,6 +11,7 @@ import Elimination from './pages/Elimination';
 import AuctionHouse from './pages/AuctionHouse';
 import Companies from './pages/Companies';
 import CompanyEmployees from './pages/CompanyEmployees';
+import CompanySpecials from './pages/CompanySpecials';
 import { BountiesList } from './components';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/auctionhouse" element={<AuctionHouse />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/companies/:companyId/employees" element={<CompanyEmployees />} />
+          <Route path="/company-specials" element={<CompanySpecials />} />
         </Routes>
         <ToastContainer
           position="top-right"

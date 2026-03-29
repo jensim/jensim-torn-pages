@@ -16,6 +16,7 @@ const Menu: React.FC<MenuProps> = ({ items = [] }) => {
     { label: 'Rentals', onClick: () => navigate('/rentals') },
     { label: 'Auction House', onClick: () => navigate('/auctionhouse') },
     { label: 'Companies', onClick: () => navigate('/companies') },
+    { label: 'Company Specials', onClick: () => navigate('/company-specials') },
     { label: 'Settings', onClick: () => navigate('/settings') },
     { label: 'Help', onClick: () => navigate('/help') },
   ];
