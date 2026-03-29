@@ -1,0 +1,17 @@
+.company-table-row-name-link {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.company-table-row-name-link:hover {
+  text-decoration: underline;
+}
+
+.company-table-row-employees-link {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.company-table-row-employees-link:hover {
+  text-decoration: underline;
+}
