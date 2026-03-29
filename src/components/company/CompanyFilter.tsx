@@ -26,7 +26,7 @@ const CompanyFilter: React.FC<CompanyFilterProps> = ({
     });
   };
 
-  const handleNumberChange = (field: 'minStars' | 'maxStars' | 'daysInactivity', value: string) => {
+  const handleNumberChange = (field: 'minStars' | 'maxStars' | 'minOpenPositions' | 'daysInactivity', value: string) => {
     if (field === 'daysInactivity') {
       onFilterChange({ ...filters, [field]: value === '' ? 3 : Number(value) });
     } else {
@@ -122,6 +122,22 @@ const CompanyFilter: React.FC<CompanyFilterProps> = ({
                   placeholder="Max"
                   min="0"
                   max="10"
+                />
+              </label>
+            </div>
+
+            {/* Positions */}
+            <div className="company-filter-group">
+              <strong>Positions</strong>
+              <label className="company-filter-label">
+                <span>Min open positions</span>
+                <input
+                  className="company-filter-input"
+                  type="number"
+                  value={filters.minOpenPositions ?? ''}
+                  onChange={(e) => handleNumberChange('minOpenPositions', e.target.value)}
+                  placeholder="Min"
+                  min="0"
                 />
               </label>
             </div>

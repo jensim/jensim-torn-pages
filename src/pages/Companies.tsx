@@ -114,6 +114,21 @@ const Companies: React.FC = () => {
       if (filters.minStars !== null && c.rating < filters.minStars) return false;
       if (filters.maxStars !== null && c.rating > filters.maxStars) return false;
 
+      // Min open positions
+      if (filters.minOpenPositions !== null) {
+        let openPositions = c.employees_capacity - c.employees_hired;
+        if (filters.countInactiveAsFreeSpot && companyDetails[c.ID]) {
+          const detail = companyDetails[c.ID];
+          const now = Date.now();
+          const inactiveCount = Object.values(detail.employees).filter((emp) => {
+            const daysSinceAction = (now - emp.last_action.timestamp * 1000) / 86_400_000;
+            return daysSinceAction > filters.daysInactivity;
+          }).length;
+          openPositions += inactiveCount;
+        }
+        if (openPositions < filters.minOpenPositions) return false;
+      }
+
       // Exclude inactive director (requires detail)
       if (filters.excludeInactiveDirector && companyDetails[c.ID]) {
         const detail = companyDetails[c.ID];
