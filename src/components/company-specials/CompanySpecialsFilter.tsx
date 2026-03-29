@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CompanySpecialsFilterCriteria, StatType, defaultSpecialsFilters } from './types';
+import BubbleSearch from '../BubbleSearch';
 import './CompanySpecialsFilter.css';
 
 interface CompanySpecialsFilterProps {
@@ -61,6 +62,16 @@ const CompanySpecialsFilter: React.FC<CompanySpecialsFilterProps> = ({ filters, 
 
       {isExpanded && (
         <div className="company-specials-filter-content">
+          {/* Search */}
+          <div className="company-specials-filter-group" style={{ marginBottom: '16px' }}>
+            <strong>Search (specials or positions)</strong>
+            <BubbleSearch
+              values={filters.searchTerms}
+              onChange={(searchTerms) => onFilterChange({ ...filters, searchTerms })}
+              placeholder="Type and press Enter to search..."
+            />
+          </div>
+
           <div className="company-specials-filter-grid">
             {/* Primary Gain */}
             <div className="company-specials-filter-group">

@@ -5,7 +5,7 @@ import { fetchCompanyTypes, CompanyTypesResponse, CompanyPosition } from '../api
 import { fetchWorkStats, WorkStats } from '../api/user/workStats';
 import CompanySpecialsFilter from '../components/company-specials/CompanySpecialsFilter';
 import CompanySpecialsTable, { CompanySpecialsEntry } from '../components/company-specials/CompanySpecialsTable';
-import { CompanySpecialsFilterCriteria, defaultSpecialsFilters, positionMatchesFilters } from '../components/company-specials/types';
+import { CompanySpecialsFilterCriteria, defaultSpecialsFilters, positionMatchesFilters, companyMatchesSearch } from '../components/company-specials/types';
 import './CompanySpecials.css';
 
 const FILTERS_STORAGE_KEY = 'company-specials-filters';
@@ -108,6 +108,7 @@ const CompanySpecials: React.FC = () => {
   // Filter company types and positions client-side
   const filteredEntries = useMemo<CompanySpecialsEntry[]>(() => {
     return Object.entries(companyTypes)
+      .filter(([, companyType]) => companyMatchesSearch(companyType, filters.searchTerms))
       .map(([typeId, companyType]) => {
         const matchingPositions: [string, CompanyPosition][] = Object.entries(companyType.positions)
           .filter(([, pos]) => positionMatchesFilters(pos, filters, workStats));

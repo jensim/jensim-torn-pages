@@ -1,4 +1,4 @@
-import { CompanyPosition } from '../../api/company/companyTypes';
+import { CompanyPosition, CompanyTypeInfo } from '../../api/company/companyTypes';
 import { WorkStats } from '../../api/user/workStats';
 
 export type StatType = 'man' | 'int' | 'end';
@@ -10,6 +10,7 @@ export interface CompanySpecialsFilterCriteria {
   minStatPercentInt: number | null;
   minStatPercentEnd: number | null;
   showHidden: boolean;
+  searchTerms: string[];
 }
 
 export const defaultSpecialsFilters: CompanySpecialsFilterCriteria = {
@@ -19,6 +20,7 @@ export const defaultSpecialsFilters: CompanySpecialsFilterCriteria = {
   minStatPercentInt: null,
   minStatPercentEnd: null,
   showHidden: false,
+  searchTerms: [],
 };
 
 /**
@@ -39,6 +41,36 @@ export function getGainRanking(position: CompanyPosition): { primary: StatType; 
   gains.sort((a, b) => b[1] - a[1] || b[0].localeCompare(a[0]));
 
   return { primary: gains[0][0], secondary: gains[1][0] };
+}
+
+/**
+ * Check if a company type matches the search terms (OR-search).
+ * Matches against special names/effects and position names/descriptions.
+ * Returns true if searchTerms is empty or any term matches.
+ */
+export function companyMatchesSearch(
+  companyType: CompanyTypeInfo,
+  searchTerms: string[]
+): boolean {
+  if (searchTerms.length === 0) return true;
+
+  return searchTerms.some((term) => {
+    const lower = term.toLowerCase();
+
+    // Check specials (name or effect)
+    for (const [name, special] of Object.entries(companyType.specials)) {
+      if (name.toLowerCase().includes(lower)) return true;
+      if (special.effect.toLowerCase().includes(lower)) return true;
+    }
+
+    // Check positions (name or description)
+    for (const [posName, pos] of Object.entries(companyType.positions)) {
+      if (posName.toLowerCase().includes(lower)) return true;
+      if (pos.description.toLowerCase().includes(lower)) return true;
+    }
+
+    return false;
+  });
 }
 
 /**
