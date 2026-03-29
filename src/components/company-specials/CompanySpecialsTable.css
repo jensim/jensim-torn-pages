@@ -1,0 +1,27 @@
+.company-specials-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.company-specials-table > thead > tr > th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid #ddd;
+  font-weight: 600;
+}
+
+.company-specials-table > tbody > tr > td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.company-specials-table > tbody > tr:hover > td {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.company-specials-table-empty {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+}
