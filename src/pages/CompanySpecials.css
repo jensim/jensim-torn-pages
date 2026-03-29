@@ -1,0 +1,21 @@
+.company-specials-page {
+  padding: 20px;
+}
+
+.company-specials-page h1 {
+  margin-bottom: 16px;
+}
+
+.company-specials-loading {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+}
+
+.company-specials-error {
+  color: #d32f2f;
+  padding: 12px;
+  background-color: #fdecea;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
