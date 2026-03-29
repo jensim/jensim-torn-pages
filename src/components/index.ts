@@ -2,3 +2,7 @@ export { default as PasswordInput } from './PasswordInput';
 export { default as FfApiKeyTestButton } from './FfApiKeyTestButton';
 export { default as BountiesList } from './BountiesList';
 export { default as BountiesFilter } from './BountiesFilter';
+export { default as CompanyFilter } from './company/CompanyFilter';
+export { default as CompanyTable } from './company/CompanyTable';
+export { default as CompanyTableRow } from './company/CompanyTableRow';
+export type { CompanyFilterCriteria } from './company/types';

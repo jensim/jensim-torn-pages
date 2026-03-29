@@ -1,0 +1,125 @@
+.company-filter {
+  padding: 16px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.company-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.company-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  cursor: pointer;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.company-filter-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.company-filter-toggle h3 {
+  margin: 0;
+}
+
+.company-filter-chevron {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.company-filter-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+.company-filter-content {
+  margin-top: 16px;
+}
+
+.company-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.company-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.company-filter-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.company-filter-input {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100px;
+  font-size: 14px;
+}
+
+.company-filter-select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-width: 150px;
+  font-size: 14px;
+}
+
+.company-filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.company-filter-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.company-filter-button {
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.company-filter-button:hover {
+  background-color: #eee;
+}
+
+.company-filter-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.company-filter-reset {
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
