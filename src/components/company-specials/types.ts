@@ -1,0 +1,75 @@
+import { CompanyPosition } from '../../api/company/companyTypes';
+import { WorkStats } from '../../api/user/workStats';
+
+export type StatType = 'man' | 'int' | 'end';
+
+export interface CompanySpecialsFilterCriteria {
+  primaryGain: StatType[];
+  secondaryGain: StatType[];
+  minStatPercentMan: number | null;
+  minStatPercentInt: number | null;
+  minStatPercentEnd: number | null;
+  showHidden: boolean;
+}
+
+export const defaultSpecialsFilters: CompanySpecialsFilterCriteria = {
+  primaryGain: ['man', 'int', 'end'],
+  secondaryGain: ['man', 'int', 'end'],
+  minStatPercentMan: null,
+  minStatPercentInt: null,
+  minStatPercentEnd: null,
+  showHidden: false,
+};
+
+/**
+ * Determine primary and secondary gain stat types for a position.
+ * Tie-breaking: alphabetical order end < int < man (man wins ties).
+ * Returns null for all-zero positions.
+ */
+export function getGainRanking(position: CompanyPosition): { primary: StatType; secondary: StatType } | null {
+  const gains: [StatType, number][] = [
+    ['man', position.man_gain],
+    ['int', position.int_gain],
+    ['end', position.end_gain],
+  ];
+
+  if (gains.every(([, v]) => v === 0)) return null;
+
+  // Sort descending by value, then descending alphabetically (man > int > end) for ties
+  gains.sort((a, b) => b[1] - a[1] || b[0].localeCompare(a[0]));
+
+  return { primary: gains[0][0], secondary: gains[1][0] };
+}
+
+/**
+ * Check if a position matches all filter criteria.
+ */
+export function positionMatchesFilters(
+  position: CompanyPosition,
+  filters: CompanySpecialsFilterCriteria,
+  workStats: WorkStats | null
+): boolean {
+  const ranking = getGainRanking(position);
+
+  // All-zero positions auto-pass gain filters
+  if (ranking !== null) {
+    if (!filters.primaryGain.includes(ranking.primary)) return false;
+    if (!filters.secondaryGain.includes(ranking.secondary)) return false;
+  }
+
+  // Stat % threshold (only if workStats loaded)
+  if (workStats) {
+    const checks: [number | null, number, number][] = [
+      [filters.minStatPercentMan, workStats.manual_labor, position.man_required],
+      [filters.minStatPercentInt, workStats.intelligence, position.int_required],
+      [filters.minStatPercentEnd, workStats.endurance, position.end_required],
+    ];
+    for (const [threshold, playerStat, required] of checks) {
+      if (threshold !== null && required > 0) {
+        if ((playerStat / required) * 100 < threshold) return false;
+      }
+    }
+  }
+
+  return true;
+}
