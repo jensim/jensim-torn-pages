@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CompanyBasic, CompanyDetail } from '../../api/company/companies';
 import { CompanyFilterCriteria } from './types';
+import { FormattedPrice } from '../FormattedNumber';
 import './CompanyTableRow.css';
 
 interface CompanyTableRowProps {
@@ -49,6 +50,7 @@ const CompanyTableRow: React.FC<CompanyTableRowProps> = ({ company, detail, filt
         </Link>
       </td>
       <td>{company.rating}</td>
+      <td><FormattedPrice price={company.weekly_income} /></td>
     </tr>
   );
 };

@@ -20,6 +20,19 @@
   background-color: rgba(0, 0, 0, 0.03);
 }
 
+.company-table-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.company-table-sortable:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.company-table-sort-indicator {
+  font-size: 12px;
+}
+
 .company-table-empty {
   text-align: center;
   padding: 24px;
