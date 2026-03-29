@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import './BountiesFilter.css';
 
 export interface FilterCriteria {
   minLevel: number | null;
@@ -17,6 +18,8 @@ interface BountiesFilterProps {
 }
 
 const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   const handleInputChange = (field: keyof FilterCriteria, value: string) => {
     const numValue = value === '' ? null : Number(value);
     onFilterChange({
@@ -74,144 +77,167 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
       borderRadius: '8px',
       marginBottom: '20px',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 style={{ margin: 0 }}>Filters</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
-          onClick={handleReset}
-          style={{
-            padding: '6px 12px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            backgroundColor: '#fff',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-          }}
+          className="bounties-filter-toggle"
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
         >
-          Reset Filters
+          <h3>Filters</h3>
+          <svg
+            className={`bounties-filter-chevron${isExpanded ? '' : ' bounties-filter-chevron--collapsed'}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </button>
+        {isExpanded && (
+          <button
+            onClick={handleReset}
+            style={{
+              padding: '6px 12px',
+              fontSize: '14px',
+              cursor: 'pointer',
+              backgroundColor: '#fff',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+            }}
+          >
+            Reset Filters
+          </button>
+        )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        {/* Level Filter */}
-        <div style={filterGroupStyle}>
-          <strong>Level</strong>
-          <label style={labelStyle}>
-            <span>Min</span>
-            <input
-              type="number"
-              value={filters.minLevel ?? ''}
-              onChange={(e) => handleInputChange('minLevel', e.target.value)}
-              placeholder="Min level"
-              style={inputStyle}
-              min="0"
-            />
-          </label>
-          <label style={labelStyle}>
-            <span>Max</span>
-            <input
-              type="number"
-              value={filters.maxLevel ?? ''}
-              onChange={(e) => handleInputChange('maxLevel', e.target.value)}
-              placeholder="Max level"
-              style={inputStyle}
-              min="0"
-            />
-          </label>
-        </div>
+      {isExpanded && (
+        <div className="bounties-filter-content">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            {/* Level Filter */}
+            <div style={filterGroupStyle}>
+              <strong>Level</strong>
+              <label style={labelStyle}>
+                <span>Min</span>
+                <input
+                  type="number"
+                  value={filters.minLevel ?? ''}
+                  onChange={(e) => handleInputChange('minLevel', e.target.value)}
+                  placeholder="Min level"
+                  style={inputStyle}
+                  min="0"
+                />
+              </label>
+              <label style={labelStyle}>
+                <span>Max</span>
+                <input
+                  type="number"
+                  value={filters.maxLevel ?? ''}
+                  onChange={(e) => handleInputChange('maxLevel', e.target.value)}
+                  placeholder="Max level"
+                  style={inputStyle}
+                  min="0"
+                />
+              </label>
+            </div>
 
-        {/* Reward Filter */}
-        <div style={filterGroupStyle}>
-          <strong>Reward</strong>
-          <label style={labelStyle}>
-            <span>Min ($)</span>
-            <input
-              type="number"
-              value={filters.minReward ?? ''}
-              onChange={(e) => handleInputChange('minReward', e.target.value)}
-              placeholder="Min reward"
-              style={inputStyle}
-              min="0"
-            />
-          </label>
-          <label style={labelStyle}>
-            <span>Max ($)</span>
-            <input
-              type="number"
-              value={filters.maxReward ?? ''}
-              onChange={(e) => handleInputChange('maxReward', e.target.value)}
-              placeholder="Max reward"
-              style={inputStyle}
-              min="0"
-            />
-          </label>
-        </div>
+            {/* Reward Filter */}
+            <div style={filterGroupStyle}>
+              <strong>Reward</strong>
+              <label style={labelStyle}>
+                <span>Min ($)</span>
+                <input
+                  type="number"
+                  value={filters.minReward ?? ''}
+                  onChange={(e) => handleInputChange('minReward', e.target.value)}
+                  placeholder="Min reward"
+                  style={inputStyle}
+                  min="0"
+                />
+              </label>
+              <label style={labelStyle}>
+                <span>Max ($)</span>
+                <input
+                  type="number"
+                  value={filters.maxReward ?? ''}
+                  onChange={(e) => handleInputChange('maxReward', e.target.value)}
+                  placeholder="Max reward"
+                  style={inputStyle}
+                  min="0"
+                />
+              </label>
+            </div>
 
-        {/* Fair Fight Filter */}
-        <div style={filterGroupStyle}>
-          <strong>Fair Fight</strong>
-          <label style={labelStyle}>
-            <span>Min</span>
-            <input
-              type="number"
-              value={filters.minFairFight ?? ''}
-              onChange={(e) => handleInputChange('minFairFight', e.target.value)}
-              placeholder="Min fair fight"
-              style={inputStyle}
-              min="0"
-              step="0.1"
-            />
-          </label>
-          <label style={labelStyle}>
-            <span>Max</span>
-            <input
-              type="number"
-              value={filters.maxFairFight ?? ''}
-              onChange={(e) => handleInputChange('maxFairFight', e.target.value)}
-              placeholder="Max fair fight"
-              style={inputStyle}
-              min="0"
-              step="0.1"
-            />
-          </label>
-        </div>
+            {/* Fair Fight Filter */}
+            <div style={filterGroupStyle}>
+              <strong>Fair Fight</strong>
+              <label style={labelStyle}>
+                <span>Min</span>
+                <input
+                  type="number"
+                  value={filters.minFairFight ?? ''}
+                  onChange={(e) => handleInputChange('minFairFight', e.target.value)}
+                  placeholder="Min fair fight"
+                  style={inputStyle}
+                  min="0"
+                  step="0.1"
+                />
+              </label>
+              <label style={labelStyle}>
+                <span>Max</span>
+                <input
+                  type="number"
+                  value={filters.maxFairFight ?? ''}
+                  onChange={(e) => handleInputChange('maxFairFight', e.target.value)}
+                  placeholder="Max fair fight"
+                  style={inputStyle}
+                  min="0"
+                  step="0.1"
+                />
+              </label>
+            </div>
 
-        {/* User Status Filter */}
-        <div style={filterGroupStyle}>
-          <strong>User Status</strong>
-          <label style={labelStyle}>
-            <span>Status</span>
-            <select
-              value={filters.userStatus ?? ''}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              style={{
-                ...inputStyle,
-                width: 'auto',
-                minWidth: '150px',
-              }}
-            >
-              <option value="">All Statuses</option>
-              <option value="Okay">Okay</option>
-              <option value="Hospital">Hospital</option>
-              <option value="Jail">Jail</option>
-              <option value="Federal">Federal</option>
-              <option value="Traveling">Traveling</option>
-              <option value="Abroad">Abroad</option>
-            </select>
-          </label>
-          <label style={labelStyle}>
-            <span>Max Time Remaining (mins)</span>
-            <input
-              type="number"
-              value={filters.maxTimeRemaining ?? ''}
-              onChange={(e) => handleInputChange('maxTimeRemaining', e.target.value)}
-              placeholder="Max minutes"
-              style={inputStyle}
-              min="0"
-              step="1"
-            />
-          </label>
+            {/* User Status Filter */}
+            <div style={filterGroupStyle}>
+              <strong>User Status</strong>
+              <label style={labelStyle}>
+                <span>Status</span>
+                <select
+                  value={filters.userStatus ?? ''}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  style={{
+                    ...inputStyle,
+                    width: 'auto',
+                    minWidth: '150px',
+                  }}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Okay">Okay</option>
+                  <option value="Hospital">Hospital</option>
+                  <option value="Jail">Jail</option>
+                  <option value="Federal">Federal</option>
+                  <option value="Traveling">Traveling</option>
+                  <option value="Abroad">Abroad</option>
+                </select>
+              </label>
+              <label style={labelStyle}>
+                <span>Max Time Remaining (mins)</span>
+                <input
+                  type="number"
+                  value={filters.maxTimeRemaining ?? ''}
+                  onChange={(e) => handleInputChange('maxTimeRemaining', e.target.value)}
+                  placeholder="Max minutes"
+                  style={inputStyle}
+                  min="0"
+                  step="1"
+                />
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
