@@ -6,3 +6,7 @@ export { default as CompanyFilter } from './company/CompanyFilter';
 export { default as CompanyTable } from './company/CompanyTable';
 export { default as CompanyTableRow } from './company/CompanyTableRow';
 export type { CompanyFilterCriteria } from './company/types';
+export { default as CompanySpecialsFilter } from './company-specials/CompanySpecialsFilter';
+export { default as CompanySpecialsTable } from './company-specials/CompanySpecialsTable';
+export { default as CompanySpecialsRow } from './company-specials/CompanySpecialsRow';
+export type { CompanySpecialsFilterCriteria } from './company-specials/types';
