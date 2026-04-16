@@ -57,42 +57,44 @@ const BountiesList: React.FC = () => {
     }
   }, [filters]);
 
-  // Load ALL bounties upfront, deduplicate by target_id
-  useEffect(() => {
-    const loadAllBounties = async () => {
-      if (!apiKey) {
-        return;
-      }
+  const loadBounties = async () => {
+    if (!apiKey || loading) return;
 
-      setLoading(true);
-      setLoadingProgress(0);
+    setLoading(true);
+    setLoadingProgress(0);
+    setBounties([]);
+    // Reset user data but keep FF scores and ffAttempted
+    setUserStatusData(new Map());
+    setUserStatusAttempted(new Set());
+
+    const minReward = filters.minReward;
+
+    const result = await fetchAllBounties(
+      apiKey,
+      100,
+      (current) => setLoadingProgress(current),
+      // Stop fetching pages once the minimum reward on a page falls below minReward
+      minReward !== null
+        ? (page) => Math.min(...page.map(b => b.reward)) < minReward
+        : undefined
+    );
+
+    if (result.error) {
+      toast.error(`Failed to load bounties: ${result.error}`);
       setBounties([]);
-      setFfAttempted(new Set());
-      setUserStatusAttempted(new Set());
-
-      const result = await fetchAllBounties(apiKey, 100, (current) => {
-        setLoadingProgress(current);
+    } else if (result.data) {
+      // Deduplicate: keep only the first row per target_id
+      const seen = new Set<number>();
+      const unique = result.data.bounties.filter(bounty => {
+        if (seen.has(bounty.target_id)) return false;
+        seen.add(bounty.target_id);
+        return true;
       });
+      setBounties(unique);
+    }
 
-      if (result.error) {
-        toast.error(`Failed to load bounties: ${result.error}`);
-        setBounties([]);
-      } else if (result.data) {
-        // Deduplicate: keep only the first row per target_id
-        const seen = new Set<number>();
-        const unique = result.data.bounties.filter(bounty => {
-          if (seen.has(bounty.target_id)) return false;
-          seen.add(bounty.target_id);
-          return true;
-        });
-        setBounties(unique);
-      }
-
-      setLoading(false);
-    };
-
-    loadAllBounties();
-  }, [apiKey]);
+    setLoading(false);
+  };
 
   // Layer 1: apply level + reward filters — no external data needed
   const baseFilteredBounties = useMemo(() => {
@@ -270,22 +272,20 @@ const BountiesList: React.FC = () => {
     <div style={{ padding: '20px' }}>
       <h2>Torn Bounties</h2>
 
-      {loading && (
-        <p>Loading bounties{loadingProgress > 0 ? ` (${loadingProgress} loaded...)` : '...'}</p>
-      )}
+      <BountiesFilter filters={filters} onFilterChange={setFilters} />
 
-      {!loading && bounties.length === 0 && (
-        <p>No bounties found.</p>
-      )}
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+        <Button onClick={loadBounties} disabled={loading}>
+          {loading
+            ? `Loading bounties${loadingProgress > 0 ? ` (${loadingProgress}...)` : '...'}`
+            : 'Load Bounties'}
+        </Button>
 
-      {!loading && bounties.length > 0 && (
-        <>
-          <BountiesFilter filters={filters} onFilterChange={setFilters} />
-
-          <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-            <div>
+        {bounties.length > 0 && (
+          <>
+            <span>
               <strong>{filteredBounties.length}</strong> of <strong>{bounties.length}</strong> bounties shown
-            </div>
+            </span>
             {ffApiKey && (
               <Button
                 onClick={loadFairFightBatch}
@@ -300,39 +300,45 @@ const BountiesList: React.FC = () => {
             >
               {loadingUserStatus ? 'Loading Status...' : `Load User Status (${userStatusLoadedInLayer2}/${ffFilteredBounties.length})`}
             </Button>
-          </div>
+          </>
+        )}
+      </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #ddd' }}>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Target</th>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Level</th>
-                <th style={{ textAlign: 'center', padding: '8px' }}>Status</th>
-                <th style={{ textAlign: 'center', padding: '8px' }}>Time Remaining</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>Reward</th>
-                <th style={{ textAlign: 'center', padding: '8px' }}>Fair Fight</th>
-                <th style={{ textAlign: 'center', padding: '8px' }}>Quantity</th>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Valid Until</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBounties.map((bounty, index) => (
-                <BountyListRow
-                  key={`${bounty.target_id}-${index}`}
-                  bounty={bounty}
-                  index={index}
-                  ffStats={fairFightData.get(bounty.target_id)}
-                  userStatus={userStatusData.get(bounty.target_id)}
-                  loadingUserStatus={loadingUserStatus}
-                  loadingFairFight={loadingFairFight}
-                  hasFfApiKey={!!ffApiKey}
-                  formatCurrency={formatCurrency}
-                  formatDate={formatDate}
-                />
-              ))}
-            </tbody>
-          </table>
-        </>
+      {!loading && bounties.length === 0 && (
+        <p>No bounties loaded. Set your filters and press Load Bounties.</p>
+      )}
+
+      {bounties.length > 0 && (
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #ddd' }}>
+              <th style={{ textAlign: 'left', padding: '8px' }}>Target</th>
+              <th style={{ textAlign: 'left', padding: '8px' }}>Level</th>
+              <th style={{ textAlign: 'center', padding: '8px' }}>Status</th>
+              <th style={{ textAlign: 'center', padding: '8px' }}>Time Remaining</th>
+              <th style={{ textAlign: 'right', padding: '8px' }}>Reward</th>
+              <th style={{ textAlign: 'center', padding: '8px' }}>Fair Fight</th>
+              <th style={{ textAlign: 'center', padding: '8px' }}>Quantity</th>
+              <th style={{ textAlign: 'left', padding: '8px' }}>Valid Until</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredBounties.map((bounty, index) => (
+              <BountyListRow
+                key={`${bounty.target_id}-${index}`}
+                bounty={bounty}
+                index={index}
+                ffStats={fairFightData.get(bounty.target_id)}
+                userStatus={userStatusData.get(bounty.target_id)}
+                loadingUserStatus={loadingUserStatus}
+                loadingFairFight={loadingFairFight}
+                hasFfApiKey={!!ffApiKey}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
+              />
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

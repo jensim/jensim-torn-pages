@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './BountiesFilter.css';
 
 export interface FilterCriteria {
@@ -18,8 +18,6 @@ interface BountiesFilterProps {
 }
 
 const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
-
   const handleInputChange = (field: keyof FilterCriteria, value: string) => {
     const numValue = value === '' ? null : Number(value);
     onFilterChange({
@@ -77,45 +75,25 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
       borderRadius: '8px',
       marginBottom: '20px',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h3 style={{ margin: 0 }}>Filters</h3>
         <button
-          className="bounties-filter-toggle"
-          onClick={() => setIsExpanded(!isExpanded)}
-          aria-expanded={isExpanded}
+          onClick={handleReset}
+          style={{
+            padding: '6px 12px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            backgroundColor: '#fff',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+          }}
         >
-          <h3>Filters</h3>
-          <svg
-            className={`bounties-filter-chevron${isExpanded ? '' : ' bounties-filter-chevron--collapsed'}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          Reset Filters
         </button>
-        {isExpanded && (
-          <button
-            onClick={handleReset}
-            style={{
-              padding: '6px 12px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              backgroundColor: '#fff',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-            }}
-          >
-            Reset Filters
-          </button>
-        )}
       </div>
 
-      {isExpanded && (
-        <div className="bounties-filter-content">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+      <div className="bounties-filter-content">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             {/* Level Filter */}
             <div style={filterGroupStyle}>
               <strong>Level</strong>
@@ -237,7 +215,7 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

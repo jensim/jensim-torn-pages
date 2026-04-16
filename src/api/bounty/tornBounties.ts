@@ -115,12 +115,14 @@ export async function fetchBounties(
  * @param apiKey - Torn API key
  * @param limit - Number of bounties per page (default: 100)
  * @param onProgress - Optional callback for progress updates
+ * @param shouldStopAfterPage - Optional callback; return true to stop fetching further pages
  * @returns Promise containing all bounties or error
  */
 export async function fetchAllBounties(
   apiKey: string,
   limit: number = 100,
-  onProgress?: (current: number, total: Bounty[]) => void
+  onProgress?: (current: number, total: Bounty[]) => void,
+  shouldStopAfterPage?: (page: Bounty[]) => boolean
 ): Promise<FetchBountiesResult> {
   const allBounties: Bounty[] = [];
   let offset = 0;
@@ -138,14 +140,17 @@ export async function fetchAllBounties(
 
     if (result.data) {
       allBounties.push(...result.data.bounties);
-      
+
       // Call progress callback if provided
       if (onProgress) {
         onProgress(offset + result.data.bounties.length, allBounties);
       }
 
-      // Check if there's a next page
+      // Check if there's a next page, and allow caller to stop early
       hasMore = result.data._metadata.links.next !== null && result.data.bounties.length > 0;
+      if (hasMore && shouldStopAfterPage && shouldStopAfterPage(result.data.bounties)) {
+        hasMore = false;
+      }
       offset += limit;
     } else {
       hasMore = false;
