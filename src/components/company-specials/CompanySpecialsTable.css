@@ -11,6 +11,11 @@
   font-weight: 600;
 }
 
+/* Center the star-rating columns (★ 1 through ★ 10) */
+.company-specials-table > thead > tr > th:not(:first-child):not(:last-child) {
+  text-align: center;
+}
+
 .company-specials-table > tbody > tr > td {
   padding: 8px 12px;
   border-bottom: 1px solid #eee;
