@@ -73,7 +73,7 @@ describe('auctionHouse API', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(global.fetch).toHaveBeenNthCalledWith(1, expect.stringContaining('limit=20'));
+    expect(global.fetch).toHaveBeenNthCalledWith(1, expect.stringContaining('limit=100'));
     expect(global.fetch).toHaveBeenNthCalledWith(1, expect.stringContaining('key=test-api-key'));
     expect(global.fetch).toHaveBeenNthCalledWith(2, expect.stringContaining('offset=20'));
     expect(global.fetch).toHaveBeenNthCalledWith(2, expect.stringContaining('key=test-api-key'));
