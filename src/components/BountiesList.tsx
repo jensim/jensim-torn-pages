@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { fetchBounties, Bounty, FFScouterStats, fetchUserProfileV1Cached, UserProfileV1, fetchStats} from '../api';
+import { fetchAllBounties, Bounty, FFScouterStats, fetchUserProfileV1Cached, UserProfileV1, fetchStats} from '../api';
 import { usePassword } from '../hooks';
 import { toast } from 'react-toastify';
 import BountiesFilter, { FilterCriteria } from './BountiesFilter';
 import { useNavigate } from 'react-router-dom';
 import BountyListRow from './BountyListRow';
 import Button from './Button';
+
+const BATCH_SIZE = 50;
 
 const BountiesList: React.FC = () => {
   const { password: apiKey } = usePassword('torn-api-key');
@@ -14,12 +16,11 @@ const BountiesList: React.FC = () => {
   const [fairFightData, setFairFightData] = useState<Map<number, FFScouterStats>>(new Map());
   const [userStatusData, setUserStatusData] = useState<Map<number, UserProfileV1>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingFairFight, setLoadingFairFight] = useState(false);
+  const [ffLoadOffset, setFfLoadOffset] = useState(0);
   const [loadingUserStatus, setLoadingUserStatus] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
-  const [hasPrev, setHasPrev] = useState(false);
-  const limit = 100;
+  const [userStatusAttempted, setUserStatusAttempted] = useState<Set<number>>(new Set());
 
   // Load initial filters from localStorage
   const getInitialFilters = (): FilterCriteria => {
@@ -42,7 +43,7 @@ const BountiesList: React.FC = () => {
       maxTimeRemaining: null,
     };
   };
-  
+
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState<FilterCriteria>(getInitialFilters);
@@ -56,72 +57,152 @@ const BountiesList: React.FC = () => {
     }
   }, [filters]);
 
+  // Load ALL bounties upfront, deduplicate by target_id
   useEffect(() => {
-    const loadBounties = async () => {
+    const loadAllBounties = async () => {
       if (!apiKey) {
         return;
       }
 
       setLoading(true);
+      setLoadingProgress(0);
+      setBounties([]);
+      setFfLoadOffset(0);
+      setUserStatusAttempted(new Set());
 
-      const result = await fetchBounties({ apiKey, limit, offset });
+      const result = await fetchAllBounties(apiKey, 100, (current) => {
+        setLoadingProgress(current);
+      });
 
       if (result.error) {
         toast.error(`Failed to load bounties: ${result.error}`);
         setBounties([]);
       } else if (result.data) {
-        setBounties(result.data.bounties);
-        setHasNext(result.data._metadata.links.next !== null);
-        setHasPrev(result.data._metadata.links.prev !== null);
+        // Deduplicate: keep only the first row per target_id
+        const seen = new Set<number>();
+        const unique = result.data.bounties.filter(bounty => {
+          if (seen.has(bounty.target_id)) return false;
+          seen.add(bounty.target_id);
+          return true;
+        });
+        setBounties(unique);
       }
 
       setLoading(false);
     };
 
-    loadBounties();
-  }, [apiKey, offset]);
+    loadAllBounties();
+  }, [apiKey]);
 
-  useEffect(() => {
-    const loadFairFightData = async () => {
-      if (!ffApiKey || bounties.length === 0) {
-        return;
+  const filteredBounties = useMemo(() => {
+    const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
+
+    return bounties.filter(bounty => {
+      const ffStats = fairFightData.get(bounty.target_id);
+      const userStatus = userStatusData.get(bounty.target_id);
+
+      if (userStatusData.get(bounty.target_id)?.basicicons?.icon72 === 'Newbie') {
+        return false;
       }
 
-      setLoadingFairFight(true);
-
-      const targetIds = Array.from(new Set(bounties.map(bounty => bounty.target_id)));
-      const result = await fetchStats({ apiKey: ffApiKey, targetIds });
-
-      if (result.error) {
-        toast.error(`Failed to load fair fight data: ${result.error}`);
-      } else if (result.data) {
-        setFairFightData(prevMap => {
-          const newMap = new Map<number, FFScouterStats>(prevMap);
-          result.data?.forEach(stats => {
-            newMap.set(stats.player_id, stats);
-          });
-          return newMap;
-        });
+      // Level filter
+      if (filters.minLevel !== null && bounty.target_level < filters.minLevel) {
+        return false;
+      }
+      if (filters.maxLevel !== null && bounty.target_level > filters.maxLevel) {
+        return false;
       }
 
-      setLoadingFairFight(false);
-    };
+      // Reward filter
+      if (filters.minReward !== null && bounty.reward < filters.minReward) {
+        return false;
+      }
+      if (filters.maxReward !== null && bounty.reward > filters.maxReward) {
+        return false;
+      }
 
-    loadFairFightData();
-  }, [ffApiKey, bounties]);
+      // Fair Fight filter (only if data is available)
+      if (ffStats) {
+        if (filters.minFairFight !== null && ffStats.fair_fight < filters.minFairFight) {
+          return false;
+        }
+        if (filters.maxFairFight !== null && ffStats.fair_fight > filters.maxFairFight) {
+          return false;
+        }
+      }
 
-  const loadUserStatusForFilteredTargets = async () => {
-    if (!apiKey || filteredBounties.length === 0) {
+      // User Status filter (only if data is available)
+      if (filters.userStatus !== null && userStatus) {
+        if (userStatus.status.state !== filters.userStatus) {
+          return false;
+        }
+      }
+
+      // Max Time Remaining filter (only if data is available)
+      if (filters.maxTimeRemaining !== null && userStatus) {
+        const timeRemainingSeconds = userStatus.status.until - currentTime;
+        const timeRemainingMinutes = timeRemainingSeconds / 60;
+
+        // Only filter if the status has a future "until" timestamp
+        if (timeRemainingSeconds > 0 && timeRemainingMinutes > filters.maxTimeRemaining) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [bounties, fairFightData, userStatusData, filters]);
+
+  const loadFairFightBatch = async () => {
+    if (!ffApiKey || bounties.length === 0 || loadingFairFight || ffLoadOffset >= bounties.length) {
       return;
     }
 
+    setLoadingFairFight(true);
+
+    const batch = bounties.slice(ffLoadOffset, ffLoadOffset + BATCH_SIZE).map(b => b.target_id);
+    const result = await fetchStats({ apiKey: ffApiKey, targetIds: batch });
+
+    if (result.error) {
+      toast.error(`Failed to load fair fight data: ${result.error}`);
+    } else if (result.data) {
+      setFairFightData(prevMap => {
+        const newMap = new Map<number, FFScouterStats>(prevMap);
+        result.data?.forEach(stats => {
+          newMap.set(stats.player_id, stats);
+        });
+        return newMap;
+      });
+    }
+
+    setFfLoadOffset(prev => prev + batch.length);
+    setLoadingFairFight(false);
+  };
+
+  const loadUserStatusBatch = async () => {
+    if (!apiKey || filteredBounties.length === 0 || loadingUserStatus) {
+      return;
+    }
+
+    const unloadedIds = filteredBounties
+      .map(b => b.target_id)
+      .filter(id => !userStatusAttempted.has(id));
+
+    if (unloadedIds.length === 0) return;
+
     setLoadingUserStatus(true);
 
-    const targetIds = Array.from(new Set(filteredBounties.map(bounty => bounty.target_id)));
-    
-    // Fetch user data progressively
+    const batch = unloadedIds.slice(0, BATCH_SIZE);
+
+    // Mark all batch IDs as attempted upfront
+    setUserStatusAttempted(prev => {
+      const next = new Set(prev);
+      batch.forEach(id => next.add(id));
+      return next;
+    });
+
     const errors: string[] = [];
-    for (const targetId of targetIds) {
+    for (const targetId of batch) {
       const result = await fetchUserProfileV1Cached(
         { apiKey, userId: targetId },
         { maxAgeMs: 5 * 60 * 1000 }
@@ -145,76 +226,6 @@ const BountiesList: React.FC = () => {
 
     setLoadingUserStatus(false);
   };
-
-  const handlePrevious = () => {
-    if (offset >= limit) {
-      setOffset(offset - limit);
-    }
-  };
-
-  const handleNext = () => {
-    setOffset(offset + limit);
-  };
-  
-  const filteredBounties = useMemo(() => {
-    const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
-    
-    return bounties.filter(bounty => {
-      const ffStats = fairFightData.get(bounty.target_id);
-      const userStatus = userStatusData.get(bounty.target_id);
-      
-
-      if ( userStatusData.get(bounty.target_id)?.basicicons?.icon72 === 'Newbie') {
-        return false;
-      }
-
-      // Level filter
-      if (filters.minLevel !== null && bounty.target_level < filters.minLevel) {
-        return false;
-      }
-      if (filters.maxLevel !== null && bounty.target_level > filters.maxLevel) {
-        return false;
-      }
-      
-      // Reward filter
-      if (filters.minReward !== null && bounty.reward < filters.minReward) {
-        return false;
-      }
-      if (filters.maxReward !== null && bounty.reward > filters.maxReward) {
-        return false;
-      }
-      
-      // Fair Fight filter (only if data is available)
-      if (ffStats) {
-        if (filters.minFairFight !== null && ffStats.fair_fight < filters.minFairFight) {
-          return false;
-        }
-        if (filters.maxFairFight !== null && ffStats.fair_fight > filters.maxFairFight) {
-          return false;
-        }
-      }
-      
-      // User Status filter (only if data is available)
-      if (filters.userStatus !== null && userStatus) {
-        if (userStatus.status.state !== filters.userStatus) {
-          return false;
-        }
-      }
-
-      // Max Time Remaining filter (only if data is available)
-      if (filters.maxTimeRemaining !== null && userStatus) {
-        const timeRemainingSeconds = userStatus.status.until - currentTime;
-        const timeRemainingMinutes = timeRemainingSeconds / 60;
-        
-        // Only filter if the status has a future "until" timestamp
-        if (timeRemainingSeconds > 0 && timeRemainingMinutes > filters.maxTimeRemaining) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-  }, [bounties, fairFightData, userStatusData, filters]);
 
   const formatCurrency = (amount: number): string => {
     return `$${amount.toLocaleString()}`;
@@ -247,50 +258,44 @@ const BountiesList: React.FC = () => {
     );
   }
 
+  const userStatusLoadedInFiltered = filteredBounties.filter(b => userStatusAttempted.has(b.target_id)).length;
+  const ffAllLoaded = bounties.length > 0 && ffLoadOffset >= bounties.length;
+  const userStatusAllLoaded = filteredBounties.length > 0 && userStatusLoadedInFiltered >= filteredBounties.length;
+
   return (
     <div style={{ padding: '20px' }}>
       <h2>Torn Bounties</h2>
-      
-      {loading && <p>Loading bounties...</p>}
-      
+
+      {loading && (
+        <p>Loading bounties{loadingProgress > 0 ? ` (${loadingProgress} loaded...)` : '...'}</p>
+      )}
+
       {!loading && bounties.length === 0 && (
         <p>No bounties found.</p>
       )}
-      
+
       {!loading && bounties.length > 0 && (
         <>
           <BountiesFilter filters={filters} onFilterChange={setFilters} />
-          
-          <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+
+          <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
             <div>
-              <strong>{filteredBounties.length}</strong> of <strong>{bounties.length}</strong> bounties shown (page: {offset + 1} - {offset + bounties.length})
+              <strong>{filteredBounties.length}</strong> of <strong>{bounties.length}</strong> bounties shown
             </div>
-            <button
-              onClick={loadUserStatusForFilteredTargets}
-              disabled={loadingUserStatus || filteredBounties.length === 0}
-              style={{
-                padding: '8px 16px',
-                cursor: (loadingUserStatus || filteredBounties.length === 0) ? 'not-allowed' : 'pointer',
-                opacity: (loadingUserStatus || filteredBounties.length === 0) ? 0.5 : 1,
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-              }}
+            {ffApiKey && (
+              <Button
+                onClick={loadFairFightBatch}
+                disabled={loadingFairFight || ffAllLoaded || bounties.length === 0}
+              >
+                {loadingFairFight ? 'Loading FF...' : `Load FF Scores (${ffLoadOffset}/${bounties.length})`}
+              </Button>
+            )}
+            <Button
+              onClick={loadUserStatusBatch}
+              disabled={loadingUserStatus || filteredBounties.length === 0 || userStatusAllLoaded}
             >
-              {loadingUserStatus ? 'Loading Status...' : 'Load User Status'}
-            </button>
-          </div>
-          
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-            <Button
-              onClick={handlePrevious}
-              disabled={!hasPrev || offset === 0 || loading}
-            >Previous</Button>
-            <Button
-              onClick={handleNext}
-              disabled={!hasNext || loading}
-            >Next</Button>
+              {loadingUserStatus ? 'Loading Status...' : `Load User Status (${userStatusLoadedInFiltered}/${filteredBounties.length})`}
+            </Button>
           </div>
 
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -323,17 +328,6 @@ const BountiesList: React.FC = () => {
               ))}
             </tbody>
           </table>
-          
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-            <Button
-              onClick={handlePrevious}
-              disabled={!hasPrev || offset === 0 || loading}
-            >Previous</Button>
-            <Button
-              onClick={handleNext}
-              disabled={!hasNext || loading}
-            >Next</Button>
-          </div>
         </>
       )}
     </div>
