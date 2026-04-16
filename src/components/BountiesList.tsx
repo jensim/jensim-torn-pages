@@ -18,7 +18,7 @@ const BountiesList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingFairFight, setLoadingFairFight] = useState(false);
-  const [ffLoadOffset, setFfLoadOffset] = useState(0);
+  const [ffAttempted, setFfAttempted] = useState<Set<number>>(new Set());
   const [loadingUserStatus, setLoadingUserStatus] = useState(false);
   const [userStatusAttempted, setUserStatusAttempted] = useState<Set<number>>(new Set());
 
@@ -67,7 +67,7 @@ const BountiesList: React.FC = () => {
       setLoading(true);
       setLoadingProgress(0);
       setBounties([]);
-      setFfLoadOffset(0);
+      setFfAttempted(new Set());
       setUserStatusAttempted(new Set());
 
       const result = await fetchAllBounties(apiKey, 100, (current) => {
@@ -94,73 +94,77 @@ const BountiesList: React.FC = () => {
     loadAllBounties();
   }, [apiKey]);
 
-  const filteredBounties = useMemo(() => {
-    const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
-
+  // Layer 1: apply level + reward filters — no external data needed
+  const baseFilteredBounties = useMemo(() => {
     return bounties.filter(bounty => {
+      if (filters.minLevel !== null && bounty.target_level < filters.minLevel) return false;
+      if (filters.maxLevel !== null && bounty.target_level > filters.maxLevel) return false;
+      if (filters.minReward !== null && bounty.reward < filters.minReward) return false;
+      if (filters.maxReward !== null && bounty.reward > filters.maxReward) return false;
+      return true;
+    });
+  }, [bounties, filters]);
+
+  // Layer 2: apply FF score filter — skips bounties without data yet
+  const ffFilteredBounties = useMemo(() => {
+    if (filters.minFairFight === null && filters.maxFairFight === null) {
+      return baseFilteredBounties;
+    }
+    return baseFilteredBounties.filter(bounty => {
       const ffStats = fairFightData.get(bounty.target_id);
+      if (!ffStats) return true; // keep if no data loaded yet
+      if (filters.minFairFight !== null && ffStats.fair_fight < filters.minFairFight) return false;
+      if (filters.maxFairFight !== null && ffStats.fair_fight > filters.maxFairFight) return false;
+      return true;
+    });
+  }, [baseFilteredBounties, fairFightData, filters]);
+
+  // Layer 3: apply user status + newbie filter — skips bounties without data yet
+  const filteredBounties = useMemo(() => {
+    const currentTime = Math.floor(Date.now() / 1000);
+    return ffFilteredBounties.filter(bounty => {
       const userStatus = userStatusData.get(bounty.target_id);
 
-      if (userStatusData.get(bounty.target_id)?.basicicons?.icon72 === 'Newbie') {
-        return false;
-      }
-
-      // Level filter
-      if (filters.minLevel !== null && bounty.target_level < filters.minLevel) {
-        return false;
-      }
-      if (filters.maxLevel !== null && bounty.target_level > filters.maxLevel) {
-        return false;
-      }
-
-      // Reward filter
-      if (filters.minReward !== null && bounty.reward < filters.minReward) {
-        return false;
-      }
-      if (filters.maxReward !== null && bounty.reward > filters.maxReward) {
-        return false;
-      }
-
-      // Fair Fight filter (only if data is available)
-      if (ffStats) {
-        if (filters.minFairFight !== null && ffStats.fair_fight < filters.minFairFight) {
-          return false;
-        }
-        if (filters.maxFairFight !== null && ffStats.fair_fight > filters.maxFairFight) {
-          return false;
-        }
-      }
+      // Newbie filter (requires user status data)
+      if (userStatus?.basicicons?.icon72 === 'Newbie') return false;
 
       // User Status filter (only if data is available)
       if (filters.userStatus !== null && userStatus) {
-        if (userStatus.status.state !== filters.userStatus) {
-          return false;
-        }
+        if (userStatus.status.state !== filters.userStatus) return false;
       }
 
       // Max Time Remaining filter (only if data is available)
       if (filters.maxTimeRemaining !== null && userStatus) {
         const timeRemainingSeconds = userStatus.status.until - currentTime;
         const timeRemainingMinutes = timeRemainingSeconds / 60;
-
-        // Only filter if the status has a future "until" timestamp
-        if (timeRemainingSeconds > 0 && timeRemainingMinutes > filters.maxTimeRemaining) {
-          return false;
-        }
+        if (timeRemainingSeconds > 0 && timeRemainingMinutes > filters.maxTimeRemaining) return false;
       }
 
       return true;
     });
-  }, [bounties, fairFightData, userStatusData, filters]);
+  }, [ffFilteredBounties, userStatusData, filters]);
 
+  // Load next batch of FF scores from layer-1 filtered bounties
   const loadFairFightBatch = async () => {
-    if (!ffApiKey || bounties.length === 0 || loadingFairFight || ffLoadOffset >= bounties.length) {
-      return;
-    }
+    if (!ffApiKey || baseFilteredBounties.length === 0 || loadingFairFight) return;
+
+    const unloadedIds = baseFilteredBounties
+      .map(b => b.target_id)
+      .filter(id => !ffAttempted.has(id));
+
+    if (unloadedIds.length === 0) return;
 
     setLoadingFairFight(true);
 
-    const batch = bounties.slice(ffLoadOffset, ffLoadOffset + BATCH_SIZE).map(b => b.target_id);
+    const batch = unloadedIds.slice(0, BATCH_SIZE);
+
+    // Mark attempted upfront
+    setFfAttempted(prev => {
+      const next = new Set(prev);
+      batch.forEach(id => next.add(id));
+      return next;
+    });
+
     const result = await fetchStats({ apiKey: ffApiKey, targetIds: batch });
 
     if (result.error) {
@@ -175,16 +179,14 @@ const BountiesList: React.FC = () => {
       });
     }
 
-    setFfLoadOffset(prev => prev + batch.length);
     setLoadingFairFight(false);
   };
 
+  // Load next batch of user statuses from layer-2 filtered bounties
   const loadUserStatusBatch = async () => {
-    if (!apiKey || filteredBounties.length === 0 || loadingUserStatus) {
-      return;
-    }
+    if (!apiKey || ffFilteredBounties.length === 0 || loadingUserStatus) return;
 
-    const unloadedIds = filteredBounties
+    const unloadedIds = ffFilteredBounties
       .map(b => b.target_id)
       .filter(id => !userStatusAttempted.has(id));
 
@@ -194,7 +196,7 @@ const BountiesList: React.FC = () => {
 
     const batch = unloadedIds.slice(0, BATCH_SIZE);
 
-    // Mark all batch IDs as attempted upfront
+    // Mark attempted upfront
     setUserStatusAttempted(prev => {
       const next = new Set(prev);
       batch.forEach(id => next.add(id));
@@ -258,9 +260,11 @@ const BountiesList: React.FC = () => {
     );
   }
 
-  const userStatusLoadedInFiltered = filteredBounties.filter(b => userStatusAttempted.has(b.target_id)).length;
-  const ffAllLoaded = bounties.length > 0 && ffLoadOffset >= bounties.length;
-  const userStatusAllLoaded = filteredBounties.length > 0 && userStatusLoadedInFiltered >= filteredBounties.length;
+  const ffLoadedInBase = baseFilteredBounties.filter(b => ffAttempted.has(b.target_id)).length;
+  const ffAllLoaded = baseFilteredBounties.length > 0 && ffLoadedInBase >= baseFilteredBounties.length;
+
+  const userStatusLoadedInLayer2 = ffFilteredBounties.filter(b => userStatusAttempted.has(b.target_id)).length;
+  const userStatusAllLoaded = ffFilteredBounties.length > 0 && userStatusLoadedInLayer2 >= ffFilteredBounties.length;
 
   return (
     <div style={{ padding: '20px' }}>
@@ -285,16 +289,16 @@ const BountiesList: React.FC = () => {
             {ffApiKey && (
               <Button
                 onClick={loadFairFightBatch}
-                disabled={loadingFairFight || ffAllLoaded || bounties.length === 0}
+                disabled={loadingFairFight || ffAllLoaded || baseFilteredBounties.length === 0}
               >
-                {loadingFairFight ? 'Loading FF...' : `Load FF Scores (${ffLoadOffset}/${bounties.length})`}
+                {loadingFairFight ? 'Loading FF...' : `Load FF Scores (${ffLoadedInBase}/${baseFilteredBounties.length})`}
               </Button>
             )}
             <Button
               onClick={loadUserStatusBatch}
-              disabled={loadingUserStatus || filteredBounties.length === 0 || userStatusAllLoaded}
+              disabled={loadingUserStatus || ffFilteredBounties.length === 0 || userStatusAllLoaded}
             >
-              {loadingUserStatus ? 'Loading Status...' : `Load User Status (${userStatusLoadedInFiltered}/${filteredBounties.length})`}
+              {loadingUserStatus ? 'Loading Status...' : `Load User Status (${userStatusLoadedInLayer2}/${ffFilteredBounties.length})`}
             </Button>
           </div>
 
