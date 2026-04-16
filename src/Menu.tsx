@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './Menu.css';
 
@@ -31,18 +32,20 @@ const Menu: React.FC<MenuProps> = ({ items = [] }) => {
   };
 
   return (
-    <div className="menu-container">
-      <button 
-        className={`menu-icon ${isOpen ? 'open' : ''}`} 
-        onClick={toggleMenu}
-        aria-label="Toggle menu"
-      >
-        <span className="menu-line"></span>
-        <span className="menu-line"></span>
-        <span className="menu-line"></span>
-      </button>
-      
-      {isOpen && (
+    <>
+      <div className="menu-container">
+        <button
+          className={`menu-icon ${isOpen ? 'open' : ''}`}
+          onClick={toggleMenu}
+          aria-label="Toggle menu"
+        >
+          <span className="menu-line"></span>
+          <span className="menu-line"></span>
+          <span className="menu-line"></span>
+        </button>
+      </div>
+
+      {isOpen && createPortal(
         <>
           <div className="menu-overlay" onClick={toggleMenu}></div>
           <nav className="menu-dropdown">
@@ -56,9 +59,10 @@ const Menu: React.FC<MenuProps> = ({ items = [] }) => {
               ))}
             </ul>
           </nav>
-        </>
+        </>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 

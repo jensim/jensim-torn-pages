@@ -1,0 +1,11 @@
+.bounties-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.bounties-action-bar-count {
+  white-space: nowrap;
+}

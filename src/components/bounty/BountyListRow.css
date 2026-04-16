@@ -1,0 +1,54 @@
+.bounty-list-row {
+  border-bottom: 1px solid #eee;
+}
+
+.bounty-list-row-td {
+  padding: 8px;
+}
+
+.bounty-list-row-td--center {
+  text-align: center;
+}
+
+.bounty-list-row-td--right {
+  text-align: right;
+}
+
+.bounty-list-row-td--bold {
+  font-weight: bold;
+}
+
+.bounty-list-row-td--small {
+  font-size: 0.9em;
+}
+
+.bounty-list-row-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.bounty-list-row-status {
+  font-weight: bold;
+}
+
+.bounty-list-row-status--red {
+  color: #dc3545;
+}
+
+.bounty-list-row-status--blue {
+  color: #007bff;
+}
+
+.bounty-list-row-status--green {
+  color: #28a745;
+}
+
+.bounty-list-row-loading {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.bounty-list-row-empty {
+  font-size: 0.9em;
+  color: #999;
+}

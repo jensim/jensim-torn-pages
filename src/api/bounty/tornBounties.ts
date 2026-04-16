@@ -3,6 +3,8 @@
  * Provides functions for fetching bounty data from the Torn API v2
  */
 
+import { httpWrapper } from '../helpers/httpWrapper';
+
 // Type definitions for the Torn Bounties API response
 export interface Bounty {
   target_id: number;
@@ -50,9 +52,8 @@ export interface FetchBountiesResult {
 const BASE_URL = 'https://api.torn.com/v2/torn/bounties';
 
 /**
- * Fetches bounties from the Torn API
- * @param params - Parameters including API key, limit, and offset
- * @returns Promise containing the bounties data or error
+ * Fetches a single page of bounties from the Torn API.
+ * Wrapped in httpWrapper for retries on transient failures.
  */
 export async function fetchBounties(
   params: FetchBountiesParams
@@ -60,58 +61,54 @@ export async function fetchBounties(
   const { apiKey, limit = 100, offset = 0 } = params;
 
   if (!apiKey || apiKey.trim() === '') {
-    return {
-      data: null,
-      error: 'API key is required',
-    };
+    return { data: null, error: 'API key is required' };
   }
 
-  try {
-    const url = new URL(BASE_URL);
-    url.searchParams.append('key', apiKey);
-    url.searchParams.append('limit', limit.toString());
-    url.searchParams.append('offset', offset.toString());
+  return httpWrapper<BountiesResponse>(
+    {
+      retry: {
+        maxRetries: 2,
+        isSuccess: (r) =>
+          r.error === null ||
+          (r.error !== null &&
+            (r.error.startsWith('Torn API Error') ||
+              r.error.startsWith('HTTP error! status: 4'))),
+      },
+    },
+    async () => {
+      try {
+        const url = new URL(BASE_URL);
+        url.searchParams.append('key', apiKey);
+        url.searchParams.append('limit', limit.toString());
+        url.searchParams.append('offset', offset.toString());
 
-    const response = await fetch(url.toString());
+        const response = await fetch(url.toString());
 
-    if (!response.ok) {
-      return {
-        data: null,
-        error: `HTTP error! status: ${response.status}`,
-      };
+        if (!response.ok) {
+          return { data: null, error: `HTTP error! status: ${response.status}` };
+        }
+
+        const data = await response.json();
+
+        if ('error' in data && data.error) {
+          const errorData = data as BountiesError;
+          return {
+            data: null,
+            error: `Torn API Error (${errorData.error.code}): ${errorData.error.error}`,
+          };
+        }
+
+        return { data: data as BountiesResponse, error: null };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return { data: null, error: `Failed to fetch bounties: ${message}` };
+      }
     }
-
-    const data = await response.json();
-
-    // Check if the response is an error
-    if ('error' in data && data.error) {
-      const errorData = data as BountiesError;
-      return {
-        data: null,
-        error: `Torn API Error (${errorData.error.code}): ${errorData.error.error}`,
-      };
-    }
-
-    return {
-      data: data as BountiesResponse,
-      error: null,
-    };
-  } catch (error) {
-    if (error instanceof Error) {
-      return {
-        data: null,
-        error: `Failed to fetch bounties: ${error.message}`,
-      };
-    }
-    return {
-      data: null,
-      error: 'Failed to fetch bounties: Unknown error',
-    };
-  }
+  );
 }
 
 /**
- * Fetches all bounties by automatically paginating through all pages
+ * Fetches all bounties by automatically paginating through all pages.
  * @param apiKey - Torn API key
  * @param limit - Number of bounties per page (default: 100)
  * @param onProgress - Optional callback for progress updates
@@ -132,16 +129,12 @@ export async function fetchAllBounties(
     const result = await fetchBounties({ apiKey, limit, offset });
 
     if (result.error) {
-      return {
-        data: null,
-        error: result.error,
-      };
+      return { data: null, error: result.error };
     }
 
     if (result.data) {
       allBounties.push(...result.data.bounties);
 
-      // Call progress callback if provided
       if (onProgress) {
         onProgress(offset + result.data.bounties.length, allBounties);
       }
@@ -160,19 +153,14 @@ export async function fetchAllBounties(
   return {
     data: {
       bounties: allBounties,
-      _metadata: {
-        links: {
-          next: null,
-          prev: null,
-        },
-      },
+      _metadata: { links: { next: null, prev: null } },
     },
     error: null,
   };
 }
 
 /**
- * Fetches bounties using a metadata link (next or prev)
+ * Fetches bounties using a metadata link (next or prev).
  * @param apiKey - Torn API key
  * @param metadataLink - The next or prev link from metadata (e.g., "limit=100&offset=100")
  * @returns Promise containing the bounties data or error
@@ -182,17 +170,11 @@ export async function fetchBountiesByLink(
   metadataLink: string
 ): Promise<FetchBountiesResult> {
   if (!apiKey || apiKey.trim() === '') {
-    return {
-      data: null,
-      error: 'API key is required',
-    };
+    return { data: null, error: 'API key is required' };
   }
 
   if (!metadataLink || metadataLink.trim() === '') {
-    return {
-      data: null,
-      error: 'Metadata link is required',
-    };
+    return { data: null, error: 'Metadata link is required' };
   }
 
   try {
@@ -203,33 +185,19 @@ export async function fetchBountiesByLink(
     const offsetStr = params.get('offset');
 
     if (!limitStr || !offsetStr) {
-      return {
-        data: null,
-        error: 'Invalid metadata link format: missing limit or offset',
-      };
+      return { data: null, error: 'Invalid metadata link format: missing limit or offset' };
     }
 
     const limit = parseInt(limitStr, 10);
     const offset = parseInt(offsetStr, 10);
 
     if (isNaN(limit) || isNaN(offset)) {
-      return {
-        data: null,
-        error: 'Invalid metadata link format: limit or offset not a number',
-      };
+      return { data: null, error: 'Invalid metadata link format: limit or offset not a number' };
     }
 
     return fetchBounties({ apiKey, limit, offset });
   } catch (error) {
-    if (error instanceof Error) {
-      return {
-        data: null,
-        error: `Failed to parse metadata link: ${error.message}`,
-      };
-    }
-    return {
-      data: null,
-      error: 'Failed to parse metadata link: Unknown error',
-    };
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { data: null, error: `Failed to parse metadata link: ${message}` };
   }
 }
