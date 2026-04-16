@@ -139,10 +139,10 @@ const BountiesList: React.FC = () => {
       if (filters.maxTimeRemaining !== null && userStatus) {
         const timeRemainingSeconds = userStatus.status.until - currentTime;
         const timeRemainingMinutes = timeRemainingSeconds / 60;
-        if (timeRemainingSeconds > 0 && timeRemainingMinutes > filters.maxTimeRemaining) {
-          // When no specific status filter is set, still include green-status users
-          // (they are available to attack regardless of the time remaining value)
-          if (filters.userStatus !== null || userStatus.status.color !== 'green') return false;
+        // Green users are exempt when status filter is "All" — they're available to attack now
+        const isGreenExempt = filters.userStatus === null && userStatus.status.color === 'green';
+        if (!isGreenExempt && timeRemainingMinutes > filters.maxTimeRemaining) {
+          return false;
         }
       }
 
