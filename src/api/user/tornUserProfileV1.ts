@@ -223,7 +223,6 @@ export async function fetchUserProfileV1Cached(
         storageKey: `${CACHE_PREFIX}${String(userId)}`,
         maxStalenessMs: maxAgeMs,
       },
-      rateLimiter: profileRateLimiter,
       retry: {
         maxRetries: MAX_RETRIES,
         isSuccess: (r) =>
