@@ -112,7 +112,7 @@ describe('tornBounties API', () => {
     });
 
     it('should handle network errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(
+      (global.fetch as jest.Mock).mockRejectedValue(
         new Error('Network error')
       );
 

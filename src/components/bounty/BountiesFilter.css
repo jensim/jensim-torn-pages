@@ -1,0 +1,90 @@
+.bounties-filter {
+  padding: 16px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.bounties-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.bounties-filter-title {
+  margin: 0;
+}
+
+.bounties-filter-content {
+  margin-top: 0;
+}
+
+.bounties-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.bounties-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bounties-filter-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bounties-filter-input {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100px;
+  font-size: 14px;
+}
+
+.bounties-filter-select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-width: 150px;
+  font-size: 14px;
+}
+
+/* Collapsible toggle (kept for potential future use) */
+.bounties-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  cursor: pointer;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.bounties-filter-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.bounties-filter-toggle h3 {
+  margin: 0;
+}
+
+.bounties-filter-chevron {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.bounties-filter-chevron--collapsed {
+  transform: rotate(-90deg);
+}

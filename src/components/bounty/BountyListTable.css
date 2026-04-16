@@ -1,0 +1,24 @@
+.bounty-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bounty-list-table-header-row {
+  border-bottom: 2px solid #ddd;
+}
+
+.bounty-list-table-th {
+  padding: 8px;
+}
+
+.bounty-list-table-th--left {
+  text-align: left;
+}
+
+.bounty-list-table-th--center {
+  text-align: center;
+}
+
+.bounty-list-table-th--right {
+  text-align: right;
+}
