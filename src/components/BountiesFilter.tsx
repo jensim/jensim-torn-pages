@@ -216,7 +216,6 @@ const BountiesFilter: React.FC<BountiesFilterProps> = ({ filters, onFilterChange
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

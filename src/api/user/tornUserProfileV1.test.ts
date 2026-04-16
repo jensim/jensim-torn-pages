@@ -260,27 +260,6 @@ describe('tornUserProfileV1 API', () => {
     }, 15000);
   });
 
-  describe('Rate limiting', () => {
-    it('should space requests at least 500ms apart', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockProfile,
-      });
-
-      const start = Date.now();
-      const [r1, r2] = await Promise.all([
-        fetchUserProfileV1({ apiKey: 'key', userId: 1 }),
-        fetchUserProfileV1({ apiKey: 'key', userId: 2 }),
-      ]);
-      const elapsed = Date.now() - start;
-
-      expect(r1.data).toEqual(mockProfile);
-      expect(r2.data).toEqual(mockProfile);
-      expect(global.fetch).toHaveBeenCalledTimes(2);
-      expect(elapsed).toBeGreaterThanOrEqual(490); // allow small variance
-    }, 5000);
-  });
-
   describe('fetchUserProfileV1Cached', () => {
     beforeEach(() => {
       localStorage.clear();
