@@ -1,0 +1,50 @@
+.employee-table-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.employee-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.employee-table-th {
+  text-align: left;
+  padding: 0.6rem 1rem;
+  border-bottom: 2px solid #444;
+  color: #ccc;
+  white-space: nowrap;
+}
+
+.employee-table-row:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.employee-table-row:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.employee-table-cell {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #333;
+  white-space: nowrap;
+}
+
+.employee-table-cell-name {
+  min-width: 180px;
+}
+
+.employee-table-profile-link {
+  color: #7ab8f5;
+  text-decoration: none;
+}
+
+.employee-table-profile-link:hover {
+  text-decoration: underline;
+}
+
+.employee-table-empty {
+  margin-top: 1rem;
+  color: #888;
+}

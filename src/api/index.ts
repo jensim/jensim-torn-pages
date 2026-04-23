@@ -14,3 +14,4 @@ export * from './elimination/elimination';
 export * from './company/companyTypes';
 export * from './company/companies';
 export * from './user/workStats';
+export * from './user/userPersonalStats';

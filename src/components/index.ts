@@ -11,3 +11,6 @@ export { default as CompanySpecialsFilter } from './company-specials/CompanySpec
 export { default as CompanySpecialsTable } from './company-specials/CompanySpecialsTable';
 export { default as CompanySpecialsRow } from './company-specials/CompanySpecialsRow';
 export type { CompanySpecialsFilterCriteria } from './company-specials/types';
+export { default as EmployeeTable } from './company-employees/EmployeeTable';
+export { default as EmployeeTableRow } from './company-employees/EmployeeTableRow';
+export type { EmployeeRowData } from './company-employees/EmployeeTableRow';
