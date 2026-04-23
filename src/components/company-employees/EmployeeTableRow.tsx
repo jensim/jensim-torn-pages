@@ -16,9 +16,9 @@ function formatAge(days: number): string {
   return `${days}d`;
 }
 
-function formatActivity(minutes: number): string {
-  const days = Math.floor(minutes / 1440);
-  const hours = Math.floor((minutes % 1440) / 60);
+function formatActivity(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
   if (days > 0) return `${days}d ${hours}h`;
   return `${hours}h`;
 }
