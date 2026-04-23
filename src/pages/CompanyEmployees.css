@@ -1,0 +1,26 @@
+.company-employees-page {
+  padding: 1.5rem;
+}
+
+.company-employees-heading {
+  margin-bottom: 0.5rem;
+}
+
+.company-employees-company-link {
+  color: #7ab8f5;
+  text-decoration: none;
+}
+
+.company-employees-company-link:hover {
+  text-decoration: underline;
+}
+
+.company-employees-loading,
+.company-employees-error {
+  margin-top: 1rem;
+  color: #aaa;
+}
+
+.company-employees-error {
+  color: #e57373;
+}
